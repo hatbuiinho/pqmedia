@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+html,
+body {
+	min-height: 100dvh;
+	background: var(--color-slate-50);
+	color: var(--color-slate-900);
+}
+
+body {
+	font-family:
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		sans-serif;
+}
