@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import Icon from '@iconify/svelte';
+	import { resolve } from '$app/paths';
 	import type { Post, PostPublication, ReactionSummary } from '$contracts/backend';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formatRelativeVi } from '$lib/utils/time';
@@ -76,6 +76,19 @@
 		<p class="whitespace-pre-wrap text-sm text-slate-800">{post.content}</p>
 	{/if}
 
+	{#if post.hashtags && post.hashtags.length > 0}
+		<div class="flex flex-wrap gap-1">
+			{#each post.hashtags as tag (tag)}
+				<a
+					href={resolve(`/(app)/feed?hashtag=${encodeURIComponent(tag)}`)}
+					class="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+				>
+					#{tag}
+				</a>
+			{/each}
+		</div>
+	{/if}
+
 	<PostMedia attachments={post.attachments} />
 
 	<ReactionControl
@@ -109,9 +122,14 @@
 			aria-expanded={commentsOpen}
 			class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"
 		>
-			<Icon icon="lucide:message-square" class="text-base" />
+			<span class="icon-[lucide--message-square] text-base" aria-hidden="true"></span>
 			<span>{commentLabel}</span>
-			<Icon icon={commentsOpen ? 'lucide:chevron-up' : 'lucide:chevron-down'} class="text-base" />
+			<span
+				class={commentsOpen
+					? 'icon-[lucide--chevron-up] text-base'
+					: 'icon-[lucide--chevron-down] text-base'}
+				aria-hidden="true"
+			></span>
 		</button>
 	</footer>
 

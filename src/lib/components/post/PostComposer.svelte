@@ -3,6 +3,7 @@
 	import { ApiError } from '$lib/api/client';
 	import { createPost } from '$lib/api/posts';
 	import { uploadFile, type UploadResult } from '$lib/api/uploads';
+	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
 
 	interface Props {
 		onCreated: (postID: string) => void;
@@ -11,6 +12,12 @@
 	let { onCreated }: Props = $props();
 
 	let content = $state('');
+
+	// Extract hashtags from content
+	const extractedHashtags = $derived.by(() => {
+		const matches = content.match(/(?:^|\s)(#[\p{L}\d_]+)/gu) || [];
+		return Array.from(new Set(matches.map((m) => m.trim().slice(1))));
+	});
 	let pending = $state<File[]>([]);
 	let uploaded = $state<UploadResult[]>([]);
 	let busy = $state(false);
@@ -63,7 +70,11 @@
 				duration_ms: a.duration_ms ?? null,
 				sort_order
 			}));
-			const post = await createPost({ content: content.trim(), attachments: inputs });
+			const post = await createPost({
+				content: content.trim(),
+				attachments: inputs,
+				hashtags: extractedHashtags
+			});
 			content = '';
 			pending = [];
 			uploaded = [];
@@ -77,12 +88,10 @@
 </script>
 
 <form class="space-y-3 rounded-2xl bg-white p-4 shadow-sm" onsubmit={onSubmit}>
-	<textarea
+	<HashtagEditor
 		bind:value={content}
-		placeholder="Bạn đang nghĩ gì?"
-		rows="3"
-		class="w-full resize-none rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
-	></textarea>
+		placeholder="Bạn đang nghĩ gì? Thêm hashtag bằng cách gõ #..."
+	/>
 
 	{#if pending.length > 0 || uploaded.length > 0}
 		<div class="flex flex-wrap gap-2 text-xs text-slate-600">

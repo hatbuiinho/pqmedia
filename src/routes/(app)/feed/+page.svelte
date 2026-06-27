@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import type { Post, PostPublication, ReactionSummary } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
@@ -17,16 +19,33 @@
 
 	const hasMore = $derived(posts.length < total);
 
-	// onMount runs once outside Svelte's reactive system, so the async writes
-	// to `loading`/`offset`/`posts` (and the auth state apiFetch touches) don't
-	// re-trigger the loader. $effect would track those reads and loop.
+	let searchQuery = $state('');
+	let currentHashtag = $state('');
+	let searchTimeout: ReturnType<typeof setTimeout>;
+
+	$effect(() => {
+		const q = $page.url.searchParams.get('q') || '';
+		const h = $page.url.searchParams.get('hashtag') || '';
+		// Only update local input if URL changes externally (e.g., initial load or back button)
+		if (h !== currentHashtag) {
+			currentHashtag = h;
+			void loadInitial();
+		}
+		if (q !== searchQuery && document.activeElement?.getAttribute('name') !== 'search') {
+			searchQuery = q;
+			void loadInitial();
+		}
+	});
+
 	onMount(() => {
+		searchQuery = $page.url.searchParams.get('q') || '';
+		currentHashtag = $page.url.searchParams.get('hashtag') || '';
 		void loadInitial();
 	});
 
 	async function loadInitial() {
 		offset = 0;
-		posts = [];
+		// Do not clear posts here to avoid UI flash. They will be replaced when loadMore completes.
 		await loadMore();
 	}
 
@@ -35,7 +54,12 @@
 		loading = true;
 		error = null;
 		try {
-			const data = await listFeed({ limit: PAGE_SIZE, offset });
+			const data = await listFeed({
+				limit: PAGE_SIZE,
+				offset,
+				q: searchQuery || undefined,
+				hashtag: currentHashtag || undefined
+			});
 			posts = offset === 0 ? data.items : [...posts, ...data.items];
 			total = data.page.total;
 			offset += data.items.length;
@@ -72,6 +96,41 @@
 	function onCommentCountChange(postID: string, count: number) {
 		posts = posts.map((p) => (p.id === postID ? { ...p, comment_count: count } : p));
 	}
+
+	function executeSearch(query: string) {
+		const url = new URL($page.url);
+		if (query) {
+			url.searchParams.set('q', query);
+		} else {
+			url.searchParams.delete('q');
+		}
+		goto(resolve(`/(app)/feed${url.search}`), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		}).then(() => {
+			void loadInitial();
+		});
+	}
+
+	function handleSearch(e: Event) {
+		e.preventDefault();
+		clearTimeout(searchTimeout);
+		executeSearch(searchQuery);
+	}
+
+	function onSearchInput() {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => {
+			executeSearch(searchQuery);
+		}, 1000);
+	}
+
+	function removeHashtagFilter() {
+		const url = new URL($page.url);
+		url.searchParams.delete('hashtag');
+		goto(resolve(`/(app)/feed${url.search}`));
+	}
 </script>
 
 <section class="space-y-4">
@@ -84,6 +143,42 @@
 			Đăng bài
 		</a>
 	</header>
+
+	<form
+		class="sticky top-[3.75rem] z-10 relative w-full pt-1 pb-2 bg-slate-50/90 backdrop-blur-md"
+		onsubmit={handleSearch}
+	>
+		<input
+			name="search"
+			type="text"
+			bind:value={searchQuery}
+			oninput={onSearchInput}
+			placeholder="Tìm kiếm bài viết..."
+			class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm focus:border-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-100"
+		/>
+		<button
+			type="submit"
+			class="absolute top-1/2 right-4 grid -translate-y-1/2 place-items-center text-slate-400 hover:text-slate-600"
+			aria-label="Tìm kiếm"
+		>
+			<span class="icon-[lucide--search] size-5"></span>
+		</button>
+	</form>
+
+	{#if currentHashtag}
+		<div class="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+			<span class="icon-[lucide--hash] size-4"></span>
+			<span>Đang lọc theo: <strong>{currentHashtag}</strong></span>
+			<button
+				type="button"
+				class="ml-auto text-indigo-500 hover:text-indigo-700"
+				onclick={removeHashtagFilter}
+				aria-label="Xóa bộ lọc"
+			>
+				Bỏ lọc
+			</button>
+		</div>
+	{/if}
 
 	<PostComposer onCreated={() => onPostCreated()} />
 
@@ -99,7 +194,13 @@
 
 	<div class="space-y-3">
 		{#each posts as post (post.id)}
-			<PostCard {post} onDelete={(id) => onDelete(id)} {onReactionsChange} {onPublicationsChange} />
+			<PostCard
+				{post}
+				onDelete={(id) => onDelete(id)}
+				{onReactionsChange}
+				{onPublicationsChange}
+				{onCommentCountChange}
+			/>
 		{/each}
 	</div>
 

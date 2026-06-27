@@ -3,6 +3,7 @@ import { apiFetch } from './client';
 
 export type FeedQuery = {
 	q?: string;
+	hashtag?: string;
 	author?: string;
 	unpublished_on?: string;
 	limit?: number;

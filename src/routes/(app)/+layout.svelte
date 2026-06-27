@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Icon from '@iconify/svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -15,9 +14,9 @@
 	// Bottom-nav stays focused on browsing actions. Hồ sơ + admin + logout live
 	// in the profile dropdown (ProfileMenu) at the top-right of the topbar.
 	const navItems = [
-		{ href: resolve('/feed'), label: 'Bảng tin', icon: 'lucide:newspaper' },
-		{ href: resolve('/posts/new'), label: 'Đăng bài', icon: 'lucide:square-pen' },
-		{ href: resolve('/notifications'), label: 'Thông báo', icon: 'lucide:bell' }
+		{ href: resolve('/feed'), label: 'Bảng tin', icon: 'icon-[lucide--newspaper]' },
+		{ href: resolve('/posts/new'), label: 'Đăng bài', icon: 'icon-[lucide--square-pen]' },
+		{ href: resolve('/notifications'), label: 'Thông báo', icon: 'icon-[lucide--bell]' }
 	];
 
 	// Refresh principal once when the protected shell mounts. Kept out of +layout.ts
@@ -67,7 +66,7 @@
 						? 'text-slate-900'
 						: 'text-slate-500 hover:text-slate-900'}"
 				>
-					<Icon icon={item.icon} class="text-2xl sm:text-xl" />
+					<span class="{item.icon} text-2xl sm:text-xl" aria-hidden="true"></span>
 					<span class="hidden sm:inline">{item.label}</span>
 				</a>
 			{/each}

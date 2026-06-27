@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Icon from '@iconify/svelte';
 	import { resolve } from '$app/paths';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { clickOutside } from '$lib/utils/clickOutside';
@@ -35,7 +34,7 @@
 			{initial}
 		</span>
 		<span class="hidden max-w-[10rem] truncate sm:inline">{fullName}</span>
-		<Icon icon="lucide:chevron-down" class="text-base text-slate-400" />
+		<span class="icon-[lucide--chevron-down] text-base text-slate-400" aria-hidden="true"></span>
 	</button>
 
 	{#if open}
@@ -57,7 +56,7 @@
 				onclick={close}
 				class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
 			>
-				<Icon icon="lucide:user" class="text-base text-slate-500" />
+				<span class="icon-[lucide--user] text-base text-slate-500" aria-hidden="true"></span>
 				Hồ sơ
 			</a>
 
@@ -68,7 +67,7 @@
 					onclick={close}
 					class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
 				>
-					<Icon icon="lucide:users" class="text-base text-slate-500" />
+					<span class="icon-[lucide--users] text-base text-slate-500" aria-hidden="true"></span>
 					Quản trị người dùng
 				</a>
 			{/if}
@@ -84,7 +83,7 @@
 				}}
 				class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
 			>
-				<Icon icon="lucide:log-out" class="text-base" />
+				<span class="icon-[lucide--log-out] text-base" aria-hidden="true"></span>
 				Đăng xuất
 			</button>
 		</div>
