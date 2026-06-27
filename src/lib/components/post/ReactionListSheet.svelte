@@ -2,6 +2,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import type { ReactionTargetType } from '$contracts/backend';
 	import { getReactionDetails, type ReactionDetail } from '$lib/api/reactions';
+	import { clickOutside } from '$lib/utils/clickOutside';
 
 	interface Props {
 		open: boolean;
@@ -15,7 +16,6 @@
 	let loading = $state(false);
 	let error = $state<string | null>(null);
 	let items = $state<ReactionDetail[]>([]);
-	let panelEl = $state<HTMLElement | null>(null);
 
 	$effect(() => {
 		if (open && targetType && targetID) {
@@ -35,32 +35,6 @@
 			loading = false;
 		}
 	}
-
-	$effect(() => {
-		if (!open || typeof window === 'undefined') {
-			return;
-		}
-
-		const handlePointerDown = (event: PointerEvent) => {
-			const target = event.target;
-			if (!(target instanceof Node) || !panelEl) {
-				return;
-			}
-
-			if (panelEl.contains(target)) {
-				return;
-			}
-
-			event.preventDefault();
-			event.stopPropagation();
-			close();
-		};
-
-		window.addEventListener('pointerdown', handlePointerDown, true);
-		return () => {
-			window.removeEventListener('pointerdown', handlePointerDown, true);
-		};
-	});
 </script>
 
 {#if open}
@@ -78,8 +52,8 @@
 		transition:fly={{ y: 50, duration: 300, opacity: 0 }}
 	>
 		<div
-			bind:this={panelEl}
 			class="grid h-[60vh] grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-t-3xl bg-white shadow-2xl transition-transform duration-200 md:h-auto md:max-h-[min(40rem,calc(100dvh-2rem))] md:rounded-2xl"
+			use:clickOutside={{ enabled: open, onDismiss: close }}
 		>
 			<div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
 				<h2 class="text-lg font-bold text-slate-800">Người đã bày tỏ cảm xúc</h2>

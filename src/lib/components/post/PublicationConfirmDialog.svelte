@@ -87,7 +87,7 @@
 			role="dialog"
 			aria-modal="true"
 			aria-label="Đánh dấu đã đăng"
-			use:clickOutside={onClose}
+			use:clickOutside={{ enabled: open, onDismiss: onClose }}
 		>
 			<header class="mb-3 flex items-start justify-between gap-3">
 				<div>

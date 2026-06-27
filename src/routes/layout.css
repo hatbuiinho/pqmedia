@@ -3,6 +3,65 @@
 @plugin '@tailwindcss/typography';
 @plugin '@iconify/tailwind4';
 
+@theme {
+	/* Semantic brand tokens: change these to retheme the app. */
+	--app-primary: #f05a7e;
+	--app-primary-strong: #d63d67;
+	--app-primary-soft: #fff0f4;
+	--app-secondary: #5b6cff;
+	--app-secondary-soft: #edf0ff;
+	--app-accent: #22b8a6;
+	--app-accent-soft: #ebfbf8;
+	--app-border-strong: rgba(228, 192, 208, 0.8);
+	--app-shell-shadow: 0 18px 40px rgba(110, 73, 95, 0.16);
+
+	/* Tinted neutral scale used by the existing slate-* classes. */
+	--color-slate-50: #fbf7fb;
+	--color-slate-100: #f3edf5;
+	--color-slate-200: #e4d7e8;
+	--color-slate-300: #cdbacf;
+	--color-slate-400: #a28ca5;
+	--color-slate-500: #7e6c81;
+	--color-slate-600: #655768;
+	--color-slate-700: #504552;
+	--color-slate-800: #372f39;
+	--color-slate-900: #1f1a20;
+
+	/* Creative accent families mapped onto classes already used in the app. */
+	--color-indigo-50: #eef1ff;
+	--color-indigo-100: #e0e7ff;
+	--color-indigo-200: #c7d2fe;
+	--color-indigo-300: #a5b4fc;
+	--color-indigo-400: #818cf8;
+	--color-indigo-500: #5b6cff;
+	--color-indigo-600: #4f5df0;
+	--color-indigo-700: #414acb;
+	--color-indigo-800: #373da3;
+	--color-indigo-900: #2f347d;
+
+	--color-emerald-50: #effcf9;
+	--color-emerald-100: #d5f7f1;
+	--color-emerald-200: #adeee4;
+	--color-emerald-300: #78e1d3;
+	--color-emerald-400: #43cfbf;
+	--color-emerald-500: #22b8a6;
+	--color-emerald-600: #199583;
+	--color-emerald-700: #147567;
+	--color-emerald-800: #155d53;
+	--color-emerald-900: #164a43;
+
+	--color-rose-50: #fff1f3;
+	--color-rose-100: #ffe4ea;
+	--color-rose-200: #fecdd8;
+	--color-rose-300: #fda4b8;
+	--color-rose-400: #fb718f;
+	--color-rose-500: #f05a7e;
+	--color-rose-600: #e44470;
+	--color-rose-700: #c92f5d;
+	--color-rose-800: #a3284f;
+	--color-rose-900: #7f2342;
+}
+
 html,
 body {
 	min-height: 100dvh;

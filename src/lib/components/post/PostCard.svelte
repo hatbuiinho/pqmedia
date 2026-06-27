@@ -372,22 +372,22 @@
 		</button>
 
 		<div class="ml-auto flex items-center gap-3">
+			<button
+				type="button"
+				onclick={() => (shareOpen = true)}
+				class="grid h-8 w-8 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+				aria-label="Chia sẻ bài viết"
+				title="Chia sẻ"
+			>
+				<span class="icon-[lucide--share-2] text-base" aria-hidden="true"></span>
+			</button>
+
 			<ReactionControl
 				targetType="post"
 				targetID={post.id}
 				summaries={post.reactions}
 				onChange={(s) => onReactionsChange?.(post.id, s)}
 			/>
-
-			<button
-				type="button"
-				onclick={() => (shareOpen = true)}
-				class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"
-				aria-label="Chia sẻ bài viết"
-			>
-				<span class="icon-[lucide--share-2] text-base" aria-hidden="true"></span>
-				<span>Chia sẻ</span>
-			</button>
 		</div>
 	</footer>
 

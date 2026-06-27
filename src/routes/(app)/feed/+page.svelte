@@ -173,14 +173,8 @@
 </script>
 
 <section class="space-y-4">
-	<header class="flex items-center justify-between">
+	<header>
 		<h1 class="text-xl font-semibold">Bảng tin</h1>
-		<a
-			href={resolve('/posts/new')}
-			class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
-		>
-			Đăng bài
-		</a>
 	</header>
 
 	<div
@@ -205,22 +199,24 @@
 		</form>
 
 		<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} compact />
-	</div>
 
-	{#if currentHashtag}
-		<div class="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
-			<span class="icon-[lucide--hash] size-4"></span>
-			<span>Đang lọc theo: <strong>{currentHashtag}</strong></span>
-			<button
-				type="button"
-				class="ml-auto text-indigo-500 hover:text-indigo-700"
-				onclick={removeHashtagFilter}
-				aria-label="Xóa bộ lọc"
+		{#if currentHashtag}
+			<div
+				class="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-sm text-indigo-900"
 			>
-				Bỏ lọc
-			</button>
-		</div>
-	{/if}
+				<span class="icon-[lucide--hash] size-4 shrink-0"></span>
+				<span class="min-w-0 truncate">Đang lọc theo: <strong>{currentHashtag}</strong></span>
+				<button
+					type="button"
+					class="ml-auto shrink-0 text-indigo-500 hover:text-indigo-700"
+					onclick={removeHashtagFilter}
+					aria-label="Xóa bộ lọc"
+				>
+					Bỏ lọc
+				</button>
+			</div>
+		{/if}
+	</div>
 
 	{#if error}
 		<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>

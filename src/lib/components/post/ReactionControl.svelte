@@ -116,140 +116,140 @@
 	}}
 />
 
-<div
-	bind:this={wrapperEl}
-	class="flex items-center gap-1.5 {variant === 'comment-float'
-		? 'absolute right-3 bottom-0 z-[1] translate-y-1/2'
-		: ''}"
-	onpointerdown={(e) => e.stopPropagation()}
-	onclick={(e) => e.stopPropagation()}
-	role="none"
->
+<div class={variant === 'comment-float' ? 'absolute right-3 bottom-0 z-[1] translate-y-1/2' : ''}>
 	<div
-		class="flex items-center gap-1.5 overflow-x-auto scrollbar-hidden {variant === 'comment-float'
-			? 'max-w-[calc(100vw-8rem)]'
-			: ''}"
-	>
-		{#if localSummaries.length > 0}
-			{#each localSummaries as s (s.emoji)}
-				<button
-					class={`inline-flex items-center gap-1 cursor-pointer rounded-full px-2 py-1 text-xs font-semibold ${s.reacted_by_me ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-					type="button"
-					onclick={(e) => {
-						e.stopPropagation();
-						listOpen = true;
-					}}
-				>
-					<span>{s.emoji}</span>
-					<span>{s.count}</span>
-				</button>
-			{/each}
-		{/if}
-	</div>
-
-	<div
-		class="relative flex items-center"
+		bind:this={wrapperEl}
+		class="relative flex items-center gap-1.5"
+		onpointerdown={(e) => e.stopPropagation()}
+		onclick={(e) => e.stopPropagation()}
 		role="none"
-		onpointerenter={(e) => {
-			if (e.pointerType === 'mouse') {
-				if (hoverTimer) clearTimeout(hoverTimer);
-				hoverTimer = setTimeout(() => {
-					pickerOpen = true;
-				}, 200);
-			}
-		}}
-		onpointerleave={(e) => {
-			if (e.pointerType === 'mouse') {
-				if (hoverTimer) clearTimeout(hoverTimer);
-				hoverTimer = setTimeout(() => {
-					pickerOpen = false;
-				}, 300);
-			}
-		}}
 	>
-		<button
-			class={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${pickerOpen ? 'bg-slate-100 border-slate-300' : 'border-slate-200 bg-white hover:border-indigo-300 text-slate-400 hover:text-indigo-500'}`}
-			type="button"
-			aria-label="Thả cảm xúc"
-			onpointerdown={(e) => {
-				if (e.button !== 0) return;
-				e.stopPropagation();
-				if (e.pointerType !== 'mouse') {
-					isLongPress = false;
-					pressTimer = setTimeout(() => {
-						isLongPress = true;
-						pickerOpen = true;
-					}, 400);
-				}
-			}}
-			onpointerup={() => {
-				if (pressTimer) {
-					clearTimeout(pressTimer);
-					pressTimer = null;
-				}
-			}}
-			onpointerleave={() => {
-				if (pressTimer) {
-					clearTimeout(pressTimer);
-					pressTimer = null;
-				}
-			}}
-			onclick={(e) => {
-				e.stopPropagation();
-				if (!isLongPress) {
-					handleReaction(currentActionEmoji, e);
-				}
-				isLongPress = false;
-			}}
+		<div
+			class="flex items-center gap-1.5 overflow-x-auto scrollbar-hidden {variant === 'comment-float'
+				? 'max-w-[calc(100vw-8rem)]'
+				: ''}"
 		>
-			{#if displayEmoji}
-				<span class="text-[1.125rem] leading-none pointer-events-none translate-y-px"
-					>{displayEmoji}</span
-				>
-			{:else}
-				<span class="icon-[lucide--heart] size-4" aria-hidden="true"></span>
-			{/if}
-		</button>
-
-		{#if pickerOpen}
-			<div
-				class="animate-in fade-in zoom-in-95 duration-200 absolute right-0 bottom-full z-[2] mb-2 flex origin-bottom-right gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-xl"
-			>
-				{#each EMOJIS as emoji, index (emoji)}
+			{#if localSummaries.length > 0}
+				{#each localSummaries as s (s.emoji)}
 					<button
-						class="icon-pop flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xl transition hover:bg-slate-100 hover:scale-110"
-						style="animation-delay: {index * 30}ms;"
+						class={`inline-flex items-center gap-1 cursor-pointer rounded-full px-2 py-1 text-xs font-semibold ${s.reacted_by_me ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
 						type="button"
-						onclick={(e) => handleReaction(emoji, e)}
+						onclick={(e) => {
+							e.stopPropagation();
+							listOpen = true;
+						}}
 					>
-						{emoji}
+						<span>{s.emoji}</span>
+						<span>{s.count}</span>
 					</button>
 				{/each}
-
-				{#if activeReaction}
-					<div class="w-px bg-slate-200 mx-0.5 my-1"></div>
-					<button
-						class="icon-pop flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xl transition hover:bg-rose-50 text-rose-400 hover:text-rose-500 hover:scale-110"
-						style="animation-delay: {EMOJIS.length * 30}ms;"
-						type="button"
-						aria-label="Xoá cảm xúc"
-						onclick={(e) => handleReaction('', e)}
-					>
-						<span class="icon-[lucide--x] size-5" aria-hidden="true"></span>
-					</button>
-				{/if}
-			</div>
-		{/if}
-	</div>
-
-	{#each particles as p (p.id)}
-		<div
-			class="absolute z-[2] pointer-events-none text-3xl particle-fly"
-			style="left: {p.x}px; top: {p.y}px; --drift: {p.drift}px;"
-		>
-			{p.emoji}
+			{/if}
 		</div>
-	{/each}
+
+		<div
+			class="relative flex items-center"
+			role="none"
+			onpointerenter={(e) => {
+				if (e.pointerType === 'mouse') {
+					if (hoverTimer) clearTimeout(hoverTimer);
+					hoverTimer = setTimeout(() => {
+						pickerOpen = true;
+					}, 200);
+				}
+			}}
+			onpointerleave={(event: PointerEvent) => {
+				if (event.pointerType === 'mouse') {
+					if (hoverTimer) clearTimeout(hoverTimer);
+					hoverTimer = setTimeout(() => {
+						pickerOpen = false;
+					}, 300);
+				}
+			}}
+		>
+			<button
+				class={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${pickerOpen ? 'bg-slate-100 border-slate-300' : 'border-slate-200 bg-white hover:border-indigo-300 text-slate-400 hover:text-indigo-500'}`}
+				type="button"
+				aria-label="Thả cảm xúc"
+				onpointerdown={(e) => {
+					if (e.button !== 0) return;
+					e.stopPropagation();
+					if (e.pointerType !== 'mouse') {
+						isLongPress = false;
+						pressTimer = setTimeout(() => {
+							isLongPress = true;
+							pickerOpen = true;
+						}, 400);
+					}
+				}}
+				onpointerup={() => {
+					if (pressTimer) {
+						clearTimeout(pressTimer);
+						pressTimer = null;
+					}
+				}}
+				onpointerleave={() => {
+					if (pressTimer) {
+						clearTimeout(pressTimer);
+						pressTimer = null;
+					}
+				}}
+				onclick={(e) => {
+					e.stopPropagation();
+					if (!isLongPress) {
+						handleReaction(currentActionEmoji, e);
+					}
+					isLongPress = false;
+				}}
+			>
+				{#if displayEmoji}
+					<span class="text-[1.125rem] leading-none pointer-events-none translate-y-px"
+						>{displayEmoji}</span
+					>
+				{:else}
+					<span class="icon-[lucide--heart] size-4" aria-hidden="true"></span>
+				{/if}
+			</button>
+
+			{#if pickerOpen}
+				<div
+					class="animate-in fade-in zoom-in-95 duration-200 absolute right-0 bottom-full z-[2] mb-2 flex origin-bottom-right gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-xl"
+				>
+					{#each EMOJIS as emoji, index (emoji)}
+						<button
+							class="icon-pop flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xl transition hover:bg-slate-100 hover:scale-110"
+							style="animation-delay: {index * 30}ms;"
+							type="button"
+							onclick={(e) => handleReaction(emoji, e)}
+						>
+							{emoji}
+						</button>
+					{/each}
+
+					{#if activeReaction}
+						<div class="w-px bg-slate-200 mx-0.5 my-1"></div>
+						<button
+							class="icon-pop flex h-9 w-9 cursor-pointer items-center justify-center rounded-full text-xl transition hover:bg-rose-50 text-rose-400 hover:text-rose-500 hover:scale-110"
+							style="animation-delay: {EMOJIS.length * 30}ms;"
+							type="button"
+							aria-label="Xoá cảm xúc"
+							onclick={(e) => handleReaction('', e)}
+						>
+							<span class="icon-[lucide--x] size-5" aria-hidden="true"></span>
+						</button>
+					{/if}
+				</div>
+			{/if}
+		</div>
+
+		{#each particles as p (p.id)}
+			<div
+				class="absolute z-[2] pointer-events-none text-3xl particle-fly"
+				style="left: {p.x}px; top: {p.y}px; --drift: {p.drift}px;"
+			>
+				{p.emoji}
+			</div>
+		{/each}
+	</div>
 </div>
 
 <ReactionListSheet open={listOpen} {targetType} {targetID} close={() => (listOpen = false)} />

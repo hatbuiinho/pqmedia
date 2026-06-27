@@ -40,7 +40,7 @@
 			role="dialog"
 			aria-modal="true"
 			aria-label={title}
-			use:clickOutside={onCancel}
+			use:clickOutside={{ enabled: open, onDismiss: onCancel }}
 		>
 			<h2 class="text-base font-semibold text-slate-900">{title}</h2>
 			{#if message}

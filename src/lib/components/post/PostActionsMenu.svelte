@@ -28,7 +28,7 @@
 </script>
 
 {#if canEdit || canDelete}
-	<div class="relative" use:clickOutside={close}>
+	<div class="relative" use:clickOutside={{ enabled: open, onDismiss: close }}>
 		<button
 			type="button"
 			onclick={() => (open = !open)}
