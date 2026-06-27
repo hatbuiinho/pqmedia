@@ -3,11 +3,18 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import type { Post, PostPublication, ReactionSummary } from '$contracts/backend';
+	import type {
+		Post,
+		PostPublication,
+		PublicationPlatform,
+		ReactionSummary
+	} from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { deletePost, listFeed } from '$lib/api/posts';
+	import FeedFilter from '$lib/components/feed/FeedFilter.svelte';
 	import PostCard from '$lib/components/post/PostCard.svelte';
 	import PostComposer from '$lib/components/post/PostComposer.svelte';
+	import { PLATFORM_KEYS } from '$lib/constants/platforms';
 
 	const PAGE_SIZE = 20;
 
@@ -21,11 +28,22 @@
 
 	let searchQuery = $state('');
 	let currentHashtag = $state('');
+	let unpublishedOn = $state<PublicationPlatform[]>([]);
 	let searchTimeout: ReturnType<typeof setTimeout>;
+
+	function parseUnpublishedOn(raw: string | null): PublicationPlatform[] {
+		if (!raw) return [];
+		const allowed = new Set<string>(PLATFORM_KEYS);
+		return raw
+			.split(',')
+			.map((s) => s.trim())
+			.filter((s) => allowed.has(s)) as PublicationPlatform[];
+	}
 
 	$effect(() => {
 		const q = $page.url.searchParams.get('q') || '';
 		const h = $page.url.searchParams.get('hashtag') || '';
+		const up = parseUnpublishedOn($page.url.searchParams.get('unpublished_on'));
 		// Only update local input if URL changes externally (e.g., initial load or back button)
 		if (h !== currentHashtag) {
 			currentHashtag = h;
@@ -35,11 +53,16 @@
 			searchQuery = q;
 			void loadInitial();
 		}
+		if (up.join(',') !== unpublishedOn.join(',')) {
+			unpublishedOn = up;
+			void loadInitial();
+		}
 	});
 
 	onMount(() => {
 		searchQuery = $page.url.searchParams.get('q') || '';
 		currentHashtag = $page.url.searchParams.get('hashtag') || '';
+		unpublishedOn = parseUnpublishedOn($page.url.searchParams.get('unpublished_on'));
 		void loadInitial();
 	});
 
@@ -58,7 +81,8 @@
 				limit: PAGE_SIZE,
 				offset,
 				q: searchQuery || undefined,
-				hashtag: currentHashtag || undefined
+				hashtag: currentHashtag || undefined,
+				unpublished_on: unpublishedOn.length > 0 ? unpublishedOn.join(',') : undefined
 			});
 			posts = offset === 0 ? data.items : [...posts, ...data.items];
 			total = data.page.total;
@@ -97,6 +121,10 @@
 		posts = posts.map((p) => (p.id === postID ? { ...p, comment_count: count } : p));
 	}
 
+	function onPostUpdated(updated: Post) {
+		posts = posts.map((p) => (p.id === updated.id ? updated : p));
+	}
+
 	function executeSearch(query: string) {
 		const url = new URL($page.url);
 		if (query) {
@@ -104,7 +132,7 @@
 		} else {
 			url.searchParams.delete('q');
 		}
-		goto(resolve(`/(app)/feed${url.search}`), {
+		goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
 			keepFocus: true,
 			noScroll: true,
 			replaceState: true
@@ -129,7 +157,24 @@
 	function removeHashtagFilter() {
 		const url = new URL($page.url);
 		url.searchParams.delete('hashtag');
-		goto(resolve(`/(app)/feed${url.search}`));
+		goto(resolve(`/(app)/feed?${url.searchParams.toString()}`));
+	}
+
+	function applyUnpublishedFilter(next: PublicationPlatform[]) {
+		unpublishedOn = next;
+		const url = new URL($page.url);
+		if (next.length > 0) {
+			url.searchParams.set('unpublished_on', next.join(','));
+		} else {
+			url.searchParams.delete('unpublished_on');
+		}
+		goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		}).then(() => {
+			void loadInitial();
+		});
 	}
 </script>
 
@@ -180,6 +225,8 @@
 		</div>
 	{/if}
 
+	<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} />
+
 	<PostComposer onCreated={() => onPostCreated()} />
 
 	{#if error}
@@ -200,6 +247,7 @@
 				{onReactionsChange}
 				{onPublicationsChange}
 				{onCommentCountChange}
+				{onPostUpdated}
 			/>
 		{/each}
 	</div>

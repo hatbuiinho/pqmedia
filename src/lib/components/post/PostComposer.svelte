@@ -2,8 +2,9 @@
 	import type { AttachmentKind, PostAttachmentInput } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { createPost } from '$lib/api/posts';
-	import { uploadFile, type UploadResult } from '$lib/api/uploads';
+	import { uploadFile } from '$lib/api/uploads';
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
+	import MediaPicker, { type PickerItem } from './MediaPicker.svelte';
 
 	interface Props {
 		onCreated: (postID: string) => void;
@@ -13,39 +14,72 @@
 
 	let content = $state('');
 
-	// Extract hashtags from content
 	const extractedHashtags = $derived.by(() => {
 		const matches = content.match(/(?:^|\s)(#[\p{L}\d_]+)/gu) || [];
 		return Array.from(new Set(matches.map((m) => m.trim().slice(1))));
 	});
-	let pending = $state<File[]>([]);
-	let uploaded = $state<UploadResult[]>([]);
+
+	// Pending files keep their own blob URL for preview; we upload them on submit.
+	interface PendingMedia {
+		id: string;
+		file: File;
+		kind: AttachmentKind;
+		url: string;
+	}
+	let pending = $state<PendingMedia[]>([]);
 	let busy = $state(false);
 	let error = $state<string | null>(null);
 
-	const hasMedia = $derived(uploaded.length > 0 || pending.length > 0);
+	let pendingCounter = 0;
+
+	const items = $derived<PickerItem[]>(
+		pending.map((p) => ({
+			id: p.id,
+			kind: p.kind,
+			url: p.url,
+			file_name: p.file.name,
+			isPending: true
+		}))
+	);
+
+	const hasMedia = $derived(pending.length > 0);
 	const canSubmit = $derived((content.trim() !== '' || hasMedia) && !busy);
 
-	function pickFiles(event: Event) {
-		const target = event.target as HTMLInputElement;
-		if (!target.files) return;
-		pending = [...pending, ...Array.from(target.files)];
-		target.value = '';
+	function addFiles(files: File[]) {
+		const next: PendingMedia[] = files.map((file) => ({
+			id: `pending-${++pendingCounter}`,
+			file,
+			kind: file.type.startsWith('video/') ? 'video' : 'image',
+			url: URL.createObjectURL(file)
+		}));
+		pending = [...pending, ...next];
 	}
 
-	function removePending(idx: number) {
-		pending = pending.filter((_, i) => i !== idx);
+	function removeItem(id: string) {
+		pending = pending.filter((p) => p.id !== id);
 	}
 
-	function removeUploaded(idx: number) {
-		uploaded = uploaded.filter((_, i) => i !== idx);
+	function reorderItems(orderedIds: string[]) {
+		const byId = new Map(pending.map((p) => [p.id, p]));
+		pending = orderedIds.map((id) => byId.get(id)).filter((p): p is PendingMedia => !!p);
 	}
 
-	async function uploadPending(): Promise<UploadResult[]> {
-		const out: UploadResult[] = [];
-		for (const file of pending) {
-			const kind: AttachmentKind = file.type.startsWith('video/') ? 'video' : 'image';
-			out.push(await uploadFile(file, kind));
+	async function uploadPending(): Promise<PostAttachmentInput[]> {
+		const out: PostAttachmentInput[] = [];
+		for (const [sort_order, p] of pending.entries()) {
+			const uploaded = await uploadFile(p.file, p.kind);
+			out.push({
+				kind: p.kind,
+				file_name: uploaded.file_name,
+				content_type: uploaded.content_type,
+				bucket: uploaded.bucket,
+				object_key: uploaded.object_key,
+				size_bytes: uploaded.size_bytes,
+				width: uploaded.width ?? null,
+				height: uploaded.height ?? null,
+				duration_ms: uploaded.duration_ms ?? null,
+				sort_order
+			});
 		}
 		return out;
 	}
@@ -56,28 +90,15 @@
 		busy = true;
 		error = null;
 		try {
-			const fresh = await uploadPending();
-			const allAttachments = [...uploaded, ...fresh];
-			const inputs: PostAttachmentInput[] = allAttachments.map((a, sort_order) => ({
-				kind: a.kind as AttachmentKind,
-				file_name: a.file_name,
-				content_type: a.content_type,
-				bucket: a.bucket,
-				object_key: a.object_key,
-				size_bytes: a.size_bytes,
-				width: a.width ?? null,
-				height: a.height ?? null,
-				duration_ms: a.duration_ms ?? null,
-				sort_order
-			}));
+			const attachments = await uploadPending();
 			const post = await createPost({
 				content: content.trim(),
-				attachments: inputs,
+				attachments,
 				hashtags: extractedHashtags
 			});
 			content = '';
+			for (const p of pending) URL.revokeObjectURL(p.url);
 			pending = [];
-			uploaded = [];
 			onCreated(post.id);
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'Đăng bài thất bại';
@@ -93,55 +114,19 @@
 		placeholder="Bạn đang nghĩ gì? Thêm hashtag bằng cách gõ #..."
 	/>
 
-	{#if pending.length > 0 || uploaded.length > 0}
-		<div class="flex flex-wrap gap-2 text-xs text-slate-600">
-			{#each uploaded as u, i (u.object_key)}
-				<span class="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1">
-					✓ {u.file_name}
-					<button
-						type="button"
-						class="text-slate-500 hover:text-rose-600"
-						onclick={() => removeUploaded(i)}
-						aria-label="Bỏ tệp đã tải"
-					>
-						×
-					</button>
-				</span>
-			{/each}
-			{#each pending as f, i (f.name + i)}
-				<span class="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-amber-800">
-					⌛ {f.name}
-					<button
-						type="button"
-						class="text-amber-700 hover:text-rose-600"
-						onclick={() => removePending(i)}
-						aria-label="Bỏ tệp"
-					>
-						×
-					</button>
-				</span>
-			{/each}
-		</div>
-	{/if}
+	<MediaPicker
+		{items}
+		disabled={busy}
+		onAddFiles={addFiles}
+		onRemove={removeItem}
+		onReorder={reorderItems}
+	/>
 
 	{#if error}
 		<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
 	{/if}
 
-	<div class="flex items-center justify-between">
-		<label
-			class="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-		>
-			<input
-				type="file"
-				accept="image/*,video/*"
-				multiple
-				class="hidden"
-				onchange={pickFiles}
-				disabled={busy}
-			/>
-			Thêm ảnh / video
-		</label>
+	<div class="flex items-center justify-end">
 		<button
 			type="submit"
 			disabled={!canSubmit}

@@ -54,6 +54,10 @@
 	function onCommentCountChange(_id: string, count: number) {
 		if (post) post = { ...post, comment_count: count };
 	}
+
+	function onPostUpdated(updated: Post) {
+		post = updated;
+	}
 </script>
 
 <section class="space-y-4">
@@ -71,6 +75,7 @@
 			{onReactionsChange}
 			{onPublicationsChange}
 			{onCommentCountChange}
+			{onPostUpdated}
 		/>
 	{/if}
 </section>

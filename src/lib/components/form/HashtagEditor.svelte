@@ -25,6 +25,7 @@
 	let candidates = $state<string[]>([]);
 	let menuStyle = $state('');
 	let isPopoverAbove = $state(false);
+	let highlightIndex = $state(0);
 	let requestID = 0;
 
 	// Keep track of plain text value internally
@@ -139,12 +140,30 @@
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (disabled) return;
+		if (!menuOpen || candidates.length === 0) return;
 
-		if (event.key === 'Enter' && !event.shiftKey) {
-			if (menuOpen) {
-				event.preventDefault(); // allow selection via keyboard later if we want
-				// For now just close it or let it type if not handled
+		switch (event.key) {
+			case 'Enter':
+			case 'Tab': {
+				if (event.key === 'Enter' && event.shiftKey) return;
+				event.preventDefault();
+				const idx = Math.min(Math.max(highlightIndex, 0), candidates.length - 1);
+				selectMention(candidates[idx]);
+				return;
 			}
+			case 'ArrowDown':
+				event.preventDefault();
+				highlightIndex = (highlightIndex + 1) % candidates.length;
+				return;
+			case 'ArrowUp':
+				event.preventDefault();
+				highlightIndex = (highlightIndex - 1 + candidates.length) % candidates.length;
+				return;
+			case 'Escape':
+				event.preventDefault();
+				menuOpen = false;
+				mentionRange = null;
+				return;
 		}
 	}
 
@@ -222,6 +241,7 @@
 		if (!menuOpen) {
 			candidates = [];
 			menuStyle = '';
+			highlightIndex = 0;
 			return;
 		}
 
@@ -237,6 +257,8 @@
 				if (activeQuery.trim() && !candidates.includes(activeQuery.trim())) {
 					candidates = [activeQuery.trim(), ...candidates];
 				}
+				// Reset highlight to first candidate so Enter selects the top suggestion.
+				highlightIndex = 0;
 			})
 			.catch(() => {
 				// ignore
@@ -285,16 +307,20 @@
 		>
 			<div class="scrollbar-hidden max-h-48 overflow-y-auto p-1.5">
 				<div class={`flex gap-1 ${isPopoverAbove ? 'flex-col-reverse' : 'flex-col'}`}>
-					{#each candidates as candidate (candidate)}
+					{#each candidates as candidate, idx (candidate)}
+						{@const active = idx === highlightIndex}
 						<button
-							class="grid rounded-lg px-3 py-2 text-left transition hover:bg-slate-100"
+							class="grid rounded-lg px-3 py-2 text-left transition {active
+								? 'bg-slate-900 text-white'
+								: 'text-slate-900 hover:bg-slate-100'}"
 							type="button"
 							onmousedown={(event) => {
 								event.preventDefault(); // keep focus on editor
 							}}
+							onmouseenter={() => (highlightIndex = idx)}
 							onclick={() => selectMention(candidate)}
 						>
-							<span class="text-sm font-medium text-slate-900">#{candidate}</span>
+							<span class="text-sm font-medium">#{candidate}</span>
 						</button>
 					{/each}
 				</div>

@@ -24,12 +24,16 @@
 	let draft = $state('');
 	let posting = $state(false);
 
-	// Reload when the parent passes a new postID. Wrap load() in untrack so its
-	// writes to comments/loading/error (and any auth state apiFetch touches)
-	// don't re-trigger the effect.
+	// Plain (non-reactive) guard: `load()` cascades to onCountChange → parent
+	// updates `post` → new prop reference back into this component. Without the
+	// guard the effect would refire each time and re-hit the comments endpoint.
+	let loadedFor: string | null = null;
+
 	$effect(() => {
 		const id = postID;
-		if (id) untrack(() => void load());
+		if (!id || id === loadedFor) return;
+		loadedFor = id;
+		untrack(() => void load());
 	});
 
 	async function load() {
