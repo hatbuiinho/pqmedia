@@ -10,9 +10,10 @@
 		targetID: string;
 		summaries: ReactionSummary[];
 		onChange?: (summaries: ReactionSummary[]) => void;
+		variant?: 'inline' | 'comment-float';
 	}
 
-	let { targetType, targetID, summaries, onChange }: Props = $props();
+	let { targetType, targetID, summaries, onChange, variant = 'inline' }: Props = $props();
 
 	const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
@@ -117,12 +118,18 @@
 
 <div
 	bind:this={wrapperEl}
-	class="relative flex items-center justify-end gap-1.5 w-full"
+	class="flex items-center gap-1.5 {variant === 'comment-float'
+		? 'absolute right-3 bottom-0 z-[1] translate-y-1/2'
+		: ''}"
 	onpointerdown={(e) => e.stopPropagation()}
 	onclick={(e) => e.stopPropagation()}
 	role="none"
 >
-	<div class="flex items-center gap-1.5 mr-1 overflow-x-auto scrollbar-hidden">
+	<div
+		class="flex items-center gap-1.5 overflow-x-auto scrollbar-hidden {variant === 'comment-float'
+			? 'max-w-[calc(100vw-8rem)]'
+			: ''}"
+	>
 		{#if localSummaries.length > 0}
 			{#each localSummaries as s (s.emoji)}
 				<button
@@ -206,7 +213,7 @@
 
 		{#if pickerOpen}
 			<div
-				class="animate-in fade-in zoom-in-95 duration-200 absolute bottom-full right-0 mb-2 z-20 flex gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-xl origin-bottom-right"
+				class="animate-in fade-in zoom-in-95 duration-200 absolute right-0 bottom-full z-[2] mb-2 flex origin-bottom-right gap-1 rounded-full border border-slate-200 bg-white p-1.5 shadow-xl"
 			>
 				{#each EMOJIS as emoji, index (emoji)}
 					<button
@@ -237,7 +244,7 @@
 
 	{#each particles as p (p.id)}
 		<div
-			class="absolute z-50 pointer-events-none text-3xl particle-fly"
+			class="absolute z-[2] pointer-events-none text-3xl particle-fly"
 			style="left: {p.x}px; top: {p.y}px; --drift: {p.drift}px;"
 		>
 			{p.emoji}

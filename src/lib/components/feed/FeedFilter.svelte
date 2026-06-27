@@ -6,9 +6,10 @@
 		/** Platforms to show only posts that have NOT been published there. */
 		unpublishedOn: PublicationPlatform[];
 		onChange: (next: PublicationPlatform[]) => void;
+		compact?: boolean;
 	}
 
-	let { unpublishedOn, onChange }: Props = $props();
+	let { unpublishedOn, onChange, compact = false }: Props = $props();
 
 	function isActive(p: PublicationPlatform): boolean {
 		return unpublishedOn.includes(p);
@@ -23,9 +24,14 @@
 	}
 </script>
 
-<div class="space-y-2 rounded-2xl bg-white p-3 shadow-sm">
+<div class="space-y-2 rounded-2xl bg-white shadow-sm {compact ? 'p-2' : 'p-3'}">
 	<div class="flex items-center justify-between">
-		<span class="text-xs font-medium text-slate-600">Chỉ hiện bài chưa đăng ở</span>
+		<div>
+			<div class="text-xs font-medium text-slate-600">Chỉ hiện bài còn thiếu đăng ở</div>
+			{#if !compact}
+				<div class="text-[11px] text-slate-400">Chọn 1 hoặc nhiều nền tảng</div>
+			{/if}
+		</div>
 		{#if unpublishedOn.length > 0}
 			<button type="button" onclick={clearAll} class="text-xs text-slate-500 hover:text-slate-900">
 				Bỏ lọc
@@ -39,7 +45,9 @@
 				type="button"
 				onclick={() => toggle(p.key)}
 				aria-pressed={active}
-				class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition {active
+				class="inline-flex items-center gap-1 rounded-full text-xs font-medium transition {compact
+					? 'px-2 py-0.75'
+					: 'px-2.5 py-1'} {active
 					? 'bg-slate-900 text-white'
 					: 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"
 			>

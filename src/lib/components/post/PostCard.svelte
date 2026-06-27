@@ -13,6 +13,7 @@
 	import { updatePost } from '$lib/api/posts';
 	import { uploadFile } from '$lib/api/uploads';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { extractHashtags } from '$lib/utils/hashtags';
 	import { formatRelativeVi } from '$lib/utils/time';
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
 	import CommentList from './CommentList.svelte';
@@ -69,10 +70,7 @@
 	let editError = $state<string | null>(null);
 
 	// Same extraction rule as PostComposer so edit/create stay in sync.
-	const editHashtags = $derived.by(() => {
-		const matches = editDraft.match(/(?:^|\s)(#[\p{L}\d_]+)/gu) || [];
-		return Array.from(new Set(matches.map((m) => m.trim().slice(1))));
-	});
+	const editHashtags = $derived.by(() => extractHashtags(editDraft));
 
 	// Unified media list during edit: keeps existing attachments and pending uploads
 	// in a single ordered array so reorder works across the boundary.
@@ -343,13 +341,6 @@
 		<PostMedia attachments={post.attachments} />
 	{/if}
 
-	<ReactionControl
-		targetType="post"
-		targetID={post.id}
-		summaries={post.reactions}
-		onChange={(s) => onReactionsChange?.(post.id, s)}
-	/>
-
 	{#if isMine}
 		<div class="border-t border-slate-100 pt-3">
 			<PublicationStatus
@@ -380,15 +371,24 @@
 			></span>
 		</button>
 
-		<button
-			type="button"
-			onclick={() => (shareOpen = true)}
-			class="ml-auto flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"
-			aria-label="Chia sẻ bài viết"
-		>
-			<span class="icon-[lucide--share-2] text-base" aria-hidden="true"></span>
-			<span>Chia sẻ</span>
-		</button>
+		<div class="ml-auto flex items-center gap-3">
+			<ReactionControl
+				targetType="post"
+				targetID={post.id}
+				summaries={post.reactions}
+				onChange={(s) => onReactionsChange?.(post.id, s)}
+			/>
+
+			<button
+				type="button"
+				onclick={() => (shareOpen = true)}
+				class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"
+				aria-label="Chia sẻ bài viết"
+			>
+				<span class="icon-[lucide--share-2] text-base" aria-hidden="true"></span>
+				<span>Chia sẻ</span>
+			</button>
+		</div>
 	</footer>
 
 	{#if commentsOpen}

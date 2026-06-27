@@ -41,7 +41,7 @@
 		<div
 			role="menu"
 			aria-label="Tài khoản"
-			class="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+			class="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
 		>
 			<div class="border-b border-slate-100 px-3 py-2 text-xs text-slate-500">
 				Đăng nhập với

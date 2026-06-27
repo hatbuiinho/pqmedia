@@ -101,27 +101,38 @@
 	{#if comments.length > 0}
 		<ul class="space-y-3">
 			{#each comments as c (c.id)}
-				<li class="space-y-1">
-					<div class="flex items-baseline gap-2 text-sm">
-						<span class="font-medium text-slate-900">{c.author.full_name}</span>
-						<span class="text-xs text-slate-500">{formatRelativeVi(c.created_at)}</span>
-						{#if canDelete(c)}
-							<button
-								type="button"
-								class="ml-auto text-xs text-slate-400 hover:text-rose-600"
-								onclick={() => onDelete(c.id)}
+				<li class="w-full">
+					<div class="w-full max-w-full pb-4 sm:max-w-xl lg:max-w-2xl">
+						<div
+							class="relative rounded-2xl border border-slate-200/80 bg-slate-100/80 px-4 py-3 shadow-sm"
+						>
+							<div class="flex items-baseline gap-2 text-sm">
+								<span class="font-medium text-slate-900">{c.author.full_name}</span>
+								<span class="text-xs text-slate-500">{formatRelativeVi(c.created_at)}</span>
+								{#if canDelete(c)}
+									<button
+										type="button"
+										class="ml-auto text-xs text-slate-400 transition hover:text-rose-600"
+										onclick={() => onDelete(c.id)}
+									>
+										Xoá
+									</button>
+								{/if}
+							</div>
+							<p
+								class="mt-1 whitespace-pre-wrap break-words pr-10 text-sm leading-5 text-slate-800"
 							>
-								Xoá
-							</button>
-						{/if}
+								{c.content}
+							</p>
+							<ReactionControl
+								targetType="comment"
+								targetID={c.id}
+								summaries={c.reactions}
+								variant="comment-float"
+								onChange={(s) => patchReactions(c.id, s)}
+							/>
+						</div>
 					</div>
-					<p class="whitespace-pre-wrap text-sm text-slate-800">{c.content}</p>
-					<ReactionControl
-						targetType="comment"
-						targetID={c.id}
-						summaries={c.reactions}
-						onChange={(s) => patchReactions(c.id, s)}
-					/>
 				</li>
 			{/each}
 		</ul>

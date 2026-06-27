@@ -4,20 +4,19 @@
 	import { createPost } from '$lib/api/posts';
 	import { uploadFile } from '$lib/api/uploads';
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
+	import { extractHashtags } from '$lib/utils/hashtags';
 	import MediaPicker, { type PickerItem } from './MediaPicker.svelte';
 
 	interface Props {
 		onCreated: (postID: string) => void;
+		autofocus?: boolean;
 	}
 
-	let { onCreated }: Props = $props();
+	let { onCreated, autofocus = false }: Props = $props();
 
 	let content = $state('');
 
-	const extractedHashtags = $derived.by(() => {
-		const matches = content.match(/(?:^|\s)(#[\p{L}\d_]+)/gu) || [];
-		return Array.from(new Set(matches.map((m) => m.trim().slice(1))));
-	});
+	const extractedHashtags = $derived.by(() => extractHashtags(content));
 
 	// Pending files keep their own blob URL for preview; we upload them on submit.
 	interface PendingMedia {
@@ -112,6 +111,7 @@
 	<HashtagEditor
 		bind:value={content}
 		placeholder="Bạn đang nghĩ gì? Thêm hashtag bằng cách gõ #..."
+		{autofocus}
 	/>
 
 	<MediaPicker

@@ -13,7 +13,6 @@
 	import { deletePost, listFeed } from '$lib/api/posts';
 	import FeedFilter from '$lib/components/feed/FeedFilter.svelte';
 	import PostCard from '$lib/components/post/PostCard.svelte';
-	import PostComposer from '$lib/components/post/PostComposer.svelte';
 	import { PLATFORM_KEYS } from '$lib/constants/platforms';
 
 	const PAGE_SIZE = 20;
@@ -94,10 +93,6 @@
 		}
 	}
 
-	async function onPostCreated() {
-		await loadInitial();
-	}
-
 	async function onDelete(id: string) {
 		if (!confirm('Xoá bài này?')) return;
 		try {
@@ -132,12 +127,10 @@
 		} else {
 			url.searchParams.delete('q');
 		}
-		goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
+		void goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
 			keepFocus: true,
 			noScroll: true,
 			replaceState: true
-		}).then(() => {
-			void loadInitial();
 		});
 	}
 
@@ -157,23 +150,24 @@
 	function removeHashtagFilter() {
 		const url = new URL($page.url);
 		url.searchParams.delete('hashtag');
-		goto(resolve(`/(app)/feed?${url.searchParams.toString()}`));
+		void goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
 	}
 
 	function applyUnpublishedFilter(next: PublicationPlatform[]) {
-		unpublishedOn = next;
 		const url = new URL($page.url);
 		if (next.length > 0) {
 			url.searchParams.set('unpublished_on', next.join(','));
 		} else {
 			url.searchParams.delete('unpublished_on');
 		}
-		goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
+		void goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
 			keepFocus: true,
 			noScroll: true,
 			replaceState: true
-		}).then(() => {
-			void loadInitial();
 		});
 	}
 </script>
@@ -189,26 +183,29 @@
 		</a>
 	</header>
 
-	<form
-		class="sticky top-[3.75rem] z-10 relative w-full pt-1 pb-2 bg-slate-50/90 backdrop-blur-md"
-		onsubmit={handleSearch}
+	<div
+		class="sticky top-[3.75rem] z-10 -mx-4 space-y-1.5 bg-slate-50/90 px-4 pt-1 pb-1.5 backdrop-blur-md"
 	>
-		<input
-			name="search"
-			type="text"
-			bind:value={searchQuery}
-			oninput={onSearchInput}
-			placeholder="Tìm kiếm bài viết..."
-			class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-12 text-sm focus:border-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-100"
-		/>
-		<button
-			type="submit"
-			class="absolute top-1/2 right-4 grid -translate-y-1/2 place-items-center text-slate-400 hover:text-slate-600"
-			aria-label="Tìm kiếm"
-		>
-			<span class="icon-[lucide--search] size-5"></span>
-		</button>
-	</form>
+		<form class="relative w-full" onsubmit={handleSearch}>
+			<input
+				name="search"
+				type="text"
+				bind:value={searchQuery}
+				oninput={onSearchInput}
+				placeholder="Tìm kiếm bài viết..."
+				class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-12 text-sm focus:border-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-100"
+			/>
+			<button
+				type="submit"
+				class="absolute top-1/2 right-4 grid -translate-y-1/2 place-items-center text-slate-400 hover:text-slate-600"
+				aria-label="Tìm kiếm"
+			>
+				<span class="icon-[lucide--search] size-5"></span>
+			</button>
+		</form>
+
+		<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} compact />
+	</div>
 
 	{#if currentHashtag}
 		<div class="flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
@@ -224,10 +221,6 @@
 			</button>
 		</div>
 	{/if}
-
-	<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} />
-
-	<PostComposer onCreated={() => onPostCreated()} />
 
 	{#if error}
 		<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
