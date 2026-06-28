@@ -10,6 +10,7 @@ import { createPost } from '$lib/api/posts';
 import { uploadFile, type UploadResult } from '$lib/api/uploads';
 import { extractHashtags } from '$lib/utils/hashtags';
 import { auth } from './auth.svelte';
+import { hashtags } from './hashtags.svelte';
 
 export type DraftMediaStatus = 'uploading' | 'uploaded' | 'failed';
 export type PublishStatus = 'idle' | 'waiting_uploads' | 'publishing' | 'failed';
@@ -70,15 +71,24 @@ class PostComposerStore {
 
 	addFiles(files: File[]) {
 		if (this.isPublishingLocked || files.length === 0) return;
-		const next = files.map<DraftMediaEntry>((file) => ({
+		const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+		if (imageFiles.length === 0) {
+			this.error = 'Trình soạn bài chỉ hỗ trợ tải ảnh.';
+			return;
+		}
+		if (imageFiles.length !== files.length) {
+			this.error = 'Video không được hỗ trợ trong trình soạn bài. Chỉ ảnh được thêm vào.';
+		} else {
+			this.error = null;
+		}
+		const next = imageFiles.map<DraftMediaEntry>((file) => ({
 			id: `draft-media-${++this.pendingCounter}`,
 			file,
-			kind: file.type.startsWith('video/') ? 'video' : 'image',
+			kind: 'image',
 			url: URL.createObjectURL(file),
 			status: 'uploading'
 		}));
 		this.media = [...this.media, ...next];
-		this.error = null;
 		for (const entry of next) void this.uploadEntry(entry.id);
 	}
 
@@ -188,6 +198,7 @@ class PostComposerStore {
 					? { key: created.id, post: created, status: 'published', error: null }
 					: entry
 			);
+			void hashtags.refresh();
 			this.clearDraftState();
 		} catch (err) {
 			const message = err instanceof ApiError ? err.message : 'Đăng bài thất bại';

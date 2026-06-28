@@ -1,0 +1,18 @@
+services:
+  fe:
+    build:
+      context: ..
+      dockerfile: fe/Dockerfile
+      args:
+        PUBLIC_API_BASE: ${PUBLIC_API_BASE}
+        PUBLIC_APP_NAME: ${PUBLIC_APP_NAME:-PQ Media}
+    container_name: pqmedia-fe
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - nginx_network
+
+networks:
+  nginx_network:
+    external: true

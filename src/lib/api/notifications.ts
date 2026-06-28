@@ -3,6 +3,7 @@ import { apiFetch } from './client';
 
 interface NotificationListResponse {
 	items: AppNotification[];
+	unread_count: number;
 }
 
 export function listNotifications(params: { unread?: boolean; limit?: number } = {}) {

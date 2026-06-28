@@ -8,6 +8,7 @@ import {
 } from '$lib/api/push';
 
 export type PushSupportState = 'unsupported' | 'insecure' | 'ready';
+const serviceWorkerPath = '/service-worker.js';
 
 export function pushSupportState(): PushSupportState {
 	if (typeof window === 'undefined') return 'unsupported';
@@ -21,24 +22,37 @@ export async function currentPermission(): Promise<NotificationPermission> {
 	return Notification.permission;
 }
 
+export async function ensureServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
+	if (pushSupportState() !== 'ready') return null;
+	const existing =
+		(await navigator.serviceWorker.getRegistration(serviceWorkerPath)) ??
+		(await navigator.serviceWorker.getRegistration());
+	if (existing) return existing;
+	return navigator.serviceWorker.register(serviceWorkerPath);
+}
+
 export async function enableWebPush(deviceLabel?: string): Promise<void> {
 	if (pushSupportState() !== 'ready') throw new Error('Trình duyệt không hỗ trợ push');
 
 	const permission = await Notification.requestPermission();
 	if (permission !== 'granted') throw new Error('Bạn chưa cấp quyền thông báo');
 
-	const registration = await navigator.serviceWorker.ready;
+	const registration =
+		(await ensureServiceWorkerRegistration()) ?? (await navigator.serviceWorker.ready);
 	const { public_key } = await fetchVapidPublicKey();
-	const subscription = await registration.pushManager.subscribe({
-		userVisibleOnly: true,
-		applicationServerKey: urlBase64ToUint8Array(public_key) as BufferSource
-	});
+	const subscription =
+		(await registration.pushManager.getSubscription()) ??
+		(await registration.pushManager.subscribe({
+			userVisibleOnly: true,
+			applicationServerKey: urlBase64ToUint8Array(public_key) as BufferSource
+		}));
 	await upsertPushSubscription(subscriptionToInput(subscription, deviceLabel));
 }
 
 export async function disableWebPush(): Promise<void> {
 	if (pushSupportState() !== 'ready') return;
-	const registration = await navigator.serviceWorker.ready;
+	const registration =
+		(await ensureServiceWorkerRegistration()) ?? (await navigator.serviceWorker.ready);
 	const subscription = await registration.pushManager.getSubscription();
 	if (!subscription) return;
 	try {
@@ -51,12 +65,34 @@ export async function disableWebPush(): Promise<void> {
 export async function isWebPushActive(): Promise<boolean> {
 	if (pushSupportState() !== 'ready') return false;
 	try {
-		const registration = await navigator.serviceWorker.ready;
-		const subscription = await registration.pushManager.getSubscription();
-		return subscription !== null;
+		return (await getCurrentPushSubscription()) !== null;
 	} catch {
 		return false;
 	}
+}
+
+export async function getCurrentPushSubscription(): Promise<PushSubscription | null> {
+	if (pushSupportState() !== 'ready') return null;
+	const registrations = await navigator.serviceWorker.getRegistrations();
+	for (const registration of registrations) {
+		try {
+			const subscription = await registration.pushManager.getSubscription();
+			if (subscription) return subscription;
+		} catch {
+			continue;
+		}
+	}
+	const registration =
+		(await ensureServiceWorkerRegistration()) ?? (await navigator.serviceWorker.ready);
+	return registration.pushManager.getSubscription();
+}
+
+export async function syncCurrentPushSubscription(deviceLabel?: string): Promise<boolean> {
+	if (pushSupportState() !== 'ready') return false;
+	const subscription = await getCurrentPushSubscription();
+	if (!subscription) return false;
+	await upsertPushSubscription(subscriptionToInput(subscription, deviceLabel));
+	return true;
 }
 
 function subscriptionToInput(sub: PushSubscription, deviceLabel?: string) {

@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { login } from '$lib/api/auth';
 	import { ApiError } from '$lib/api/client';
+	import PasswordField from '$lib/components/form/PasswordField.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { APP_NAME } from '$lib/env';
 
@@ -48,12 +49,11 @@
 
 	<label class="block text-sm">
 		<span class="mb-1 block font-medium text-slate-700">Mật khẩu</span>
-		<input
-			type="password"
+		<PasswordField
 			bind:value={password}
 			required
 			autocomplete="current-password"
-			class="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+			className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
 		/>
 	</label>
 

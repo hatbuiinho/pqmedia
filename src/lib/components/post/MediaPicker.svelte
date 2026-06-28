@@ -26,11 +26,21 @@
 		disabled?: boolean;
 		onAddFiles: (files: File[]) => void;
 		onRemove: (id: string) => void;
+		accept?: string;
+		addLabel?: string;
 		/** Fires when drag-drop changes order. */
 		onReorder?: (orderedIds: string[]) => void;
 	}
 
-	let { items, disabled = false, onAddFiles, onRemove, onReorder }: Props = $props();
+	let {
+		items,
+		disabled = false,
+		onAddFiles,
+		onRemove,
+		accept = 'image/*,video/*',
+		addLabel = 'Thêm ảnh / video',
+		onReorder
+	}: Props = $props();
 
 	// Writable $derived: reflects the parent's `items` by default, but onconsider
 	// can overwrite it mid-drag without losing the parent-sync behaviour on the
@@ -154,15 +164,8 @@
 			? 'pointer-events-none opacity-50'
 			: ''}"
 	>
-		<input
-			type="file"
-			accept="image/*,video/*"
-			multiple
-			class="hidden"
-			onchange={handleAdd}
-			{disabled}
-		/>
+		<input type="file" {accept} multiple class="hidden" onchange={handleAdd} {disabled} />
 		<span class="icon-[lucide--plus] text-base" aria-hidden="true"></span>
-		<span>Thêm ảnh / video</span>
+		<span>{addLabel}</span>
 	</label>
 </div>

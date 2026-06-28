@@ -14,12 +14,31 @@ export interface UpdateProfileInput {
 	phone?: string | null;
 }
 
+export interface UpdateUserInput {
+	full_name: string;
+	phone?: string | null;
+	is_admin: boolean;
+	is_active: boolean;
+}
+
+export interface ResetUserPasswordInput {
+	password: string;
+}
+
 export function listUsers(params: { q?: string; limit?: number; offset?: number } = {}) {
 	return apiFetch<PageResponse<Principal>>('/users', { query: params });
 }
 
 export function createUser(body: CreateUserInput) {
 	return apiFetch<Principal>('/users', { method: 'POST', body });
+}
+
+export function updateUser(userID: string, body: UpdateUserInput) {
+	return apiFetch<Principal>(`/users/${userID}`, { method: 'PATCH', body });
+}
+
+export function resetUserPassword(userID: string, body: ResetUserPasswordInput) {
+	return apiFetch<void>(`/users/${userID}/reset-password`, { method: 'POST', body });
 }
 
 export function updateOwnProfile(body: UpdateProfileInput) {

@@ -49,7 +49,9 @@ sw.addEventListener('push', (event) => {
 async function showPushNotification(payload: PushPayload) {
 	const clientList = await sw.clients.matchAll({ type: 'window', includeUncontrolled: true });
 	for (const client of clientList) {
-		client.postMessage({ type: 'PUSH_RECEIVED', payload });
+		if (client.visibilityState === 'visible') {
+			client.postMessage({ type: 'PUSH_NOTIFICATION_RECEIVED', payload });
+		}
 	}
 	const title = payload.title ?? 'PQ Media';
 	const options: NotificationOptions = {
@@ -76,8 +78,12 @@ async function focusOrOpen(target: string) {
 	const url = new URL(target, sw.location.origin);
 	const clientList = await sw.clients.matchAll({ type: 'window', includeUncontrolled: true });
 	for (const client of clientList) {
-		if (new URL(client.url).pathname === url.pathname) {
-			client.postMessage({ type: 'PUSH_CLICKED', url: target });
+		const clientUrl = new URL(client.url);
+		if (
+			`${clientUrl.pathname}${clientUrl.search}${clientUrl.hash}` ===
+			`${url.pathname}${url.search}${url.hash}`
+		) {
+			client.postMessage({ type: 'PUSH_NOTIFICATION_CLICKED', url: target });
 			return client.focus();
 		}
 	}

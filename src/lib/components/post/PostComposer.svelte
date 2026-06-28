@@ -55,6 +55,8 @@
 	<MediaPicker
 		{items}
 		disabled={postComposer.isPublishingLocked}
+		accept="image/*"
+		addLabel="Thêm ảnh"
 		onAddFiles={(files) => postComposer.addFiles(files)}
 		onRemove={(id) => postComposer.removeMedia(id)}
 		onReorder={(orderedIds) => postComposer.reorderMedia(orderedIds)}

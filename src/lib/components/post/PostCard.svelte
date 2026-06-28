@@ -13,6 +13,7 @@
 	import { updatePost } from '$lib/api/posts';
 	import { uploadFile, type UploadResult } from '$lib/api/uploads';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { hashtags } from '$lib/stores/hashtags.svelte';
 	import { extractHashtags } from '$lib/utils/hashtags';
 	import { formatRelativeVi } from '$lib/utils/time';
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
@@ -276,6 +277,7 @@
 			if (mediaChanged) body.attachments = buildAttachmentInputs();
 			const updated = await updatePost(post.id, body);
 			onPostUpdated?.(updated);
+			void hashtags.refresh();
 			for (const e of editMedia) {
 				if (e.kind === 'pending') URL.revokeObjectURL(e.url);
 			}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -14,9 +14,12 @@
 	import { ApiError } from '$lib/api/client';
 	import { deletePost, listFeed } from '$lib/api/posts';
 	import FeedFilter from '$lib/components/feed/FeedFilter.svelte';
+	import HashtagSidebar from '$lib/components/feed/HashtagSidebar.svelte';
 	import PendingPostCard from '$lib/components/post/PendingPostCard.svelte';
 	import PostCard from '$lib/components/post/PostCard.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import { feedHashtagSidebar } from '$lib/stores/feedHashtagSidebar.svelte';
+	import { hashtags } from '$lib/stores/hashtags.svelte';
 	import { postComposer } from '$lib/stores/postComposer.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
 
@@ -225,6 +228,7 @@
 			clearTimeout(searchTimeout);
 			clearHeadPollTimer();
 			if (highlightTimer) clearTimeout(highlightTimer);
+			feedHashtagSidebar.hide();
 			document.removeEventListener('visibilitychange', onVisibilityChange);
 			window.removeEventListener('online', onOnline);
 			window.removeEventListener('offline', onOffline);
@@ -342,6 +346,7 @@
 			pendingHeadPosts = pendingHeadPosts.filter((p) => p.id !== id);
 			total = Math.max(0, total - 1);
 			postComposer.removeFeedEntry(id);
+			void hashtags.refresh();
 			deleteTargetID = null;
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'Xoá thất bại';
@@ -420,120 +425,179 @@
 			replaceState: true
 		});
 	}
+
+	function applyHashtagFilter(name: string) {
+		const url = new URL($page.url);
+		url.searchParams.set('hashtag', name);
+		void goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true
+		});
+	}
+
+	function closeHashtagDrawer() {
+		feedHashtagSidebar.hide();
+	}
+
+	function onDrawerKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Escape') return;
+		event.preventDefault();
+		closeHashtagDrawer();
+	}
 </script>
 
-<section class="space-y-4">
-	<header>
-		<h1 class="text-xl font-semibold">Bảng tin</h1>
-	</header>
-
-	<div
-		class="sticky top-[3.75rem] z-10 -mx-4 space-y-1.5 bg-slate-50/90 px-4 pt-1 pb-1.5 backdrop-blur-md"
-	>
-		<form class="relative w-full" onsubmit={handleSearch}>
-			<input
-				name="search"
-				type="text"
-				bind:value={searchQuery}
-				oninput={onSearchInput}
-				placeholder="Tìm kiếm bài viết..."
-				class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-12 text-sm focus:border-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-100"
+<section class="space-y-4 lg:space-y-0 lg:pl-[calc(17rem+1.5rem)]">
+	<aside class="relative hidden lg:block" aria-hidden="true">
+		<div
+			class="fixed top-[4.75rem] left-[max(1rem,calc((100vw-88rem)/2+1rem))] z-20 h-[calc(100dvh-5.75rem)] w-[17rem]"
+		>
+			<HashtagSidebar
+				activeHashtag={currentHashtag}
+				onSelect={applyHashtagFilter}
+				onClear={removeHashtagFilter}
 			/>
-			<button
-				type="submit"
-				class="absolute top-1/2 right-4 grid -translate-y-1/2 place-items-center text-slate-400 hover:text-slate-600"
-				aria-label="Tìm kiếm"
-			>
-				<span class="icon-[lucide--search] size-5"></span>
-			</button>
-		</form>
+		</div>
+	</aside>
 
-		<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} compact />
+	<div class="mx-auto min-w-0 max-w-[42rem] space-y-4">
+		<header>
+			<h1 class="text-xl font-semibold">Bảng tin</h1>
+		</header>
 
-		{#if currentHashtag}
-			<div
-				class="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-sm text-indigo-900"
-			>
-				<span class="icon-[lucide--hash] size-4 shrink-0"></span>
-				<span class="min-w-0 truncate">Đang lọc theo: <strong>{currentHashtag}</strong></span>
+		<div
+			class="sticky top-[3.75rem] z-10 -mx-4 space-y-1.5 bg-slate-50/90 px-4 pt-1 pb-1.5 backdrop-blur-md"
+		>
+			<form class="relative w-full" onsubmit={handleSearch}>
+				<input
+					name="search"
+					type="text"
+					bind:value={searchQuery}
+					oninput={onSearchInput}
+					placeholder="Tìm kiếm bài viết..."
+					class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 pr-12 text-sm focus:border-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-100"
+				/>
+				<button
+					type="submit"
+					class="absolute top-1/2 right-4 grid -translate-y-1/2 place-items-center text-slate-400 hover:text-slate-600"
+					aria-label="Tìm kiếm"
+				>
+					<span class="icon-[lucide--search] size-5"></span>
+				</button>
+			</form>
+
+			<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} compact />
+		</div>
+
+		{#if pendingHeadPosts.length > 0}
+			<div class="sticky top-[8.75rem] z-10 -mx-4 px-4">
 				<button
 					type="button"
-					class="ml-auto shrink-0 text-indigo-500 hover:text-indigo-700"
-					onclick={removeHashtagFilter}
-					aria-label="Xóa bộ lọc"
+					class="mx-auto flex w-full max-w-sm items-center justify-center gap-2 rounded-full border border-[var(--app-border-strong)] bg-white/95 px-4 py-2 text-sm font-medium text-[var(--app-primary-strong)] shadow-sm backdrop-blur"
+					onclick={applyPendingHeadPosts}
 				>
-					Bỏ lọc
+					<span class="icon-[lucide--arrow-up] size-4" aria-hidden="true"></span>
+					<span>
+						Có {pendingHeadPosts.length} bài viết mới
+					</span>
+					<span class="text-xs text-slate-500">Xem</span>
 				</button>
 			</div>
 		{/if}
-	</div>
 
-	{#if pendingHeadPosts.length > 0}
-		<div class="sticky top-[8.75rem] z-10 -mx-4 px-4">
+		{#if error}
+			<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+		{/if}
+
+		{#if feedEntries.length === 0 && !loading}
+			<p class="rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
+				Chưa có bài viết nào.
+			</p>
+		{/if}
+
+		<div class="space-y-3">
+			{#each feedEntries as entry (entry.key)}
+				<div
+					animate:flip={{ duration: 220, easing: (t) => t }}
+					in:fly={{
+						y: highlightedEntryKeys.includes(entry.key) ? -20 : 0,
+						opacity: highlightedEntryKeys.includes(entry.key) ? 0.55 : 1,
+						duration: highlightedEntryKeys.includes(entry.key) ? 240 : 0
+					}}
+					class={highlightedEntryKeys.includes(entry.key)
+						? 'origin-top transition duration-700 ease-out'
+						: ''}
+				>
+					{#if entry.kind === 'pending'}
+						<PendingPostCard post={entry.post} status={entry.status} error={entry.error} />
+					{:else}
+						<PostCard
+							post={entry.post}
+							onDelete={(id) => requestDelete(id)}
+							{onReactionsChange}
+							{onPublicationsChange}
+							{onCommentCountChange}
+							{onPostUpdated}
+						/>
+					{/if}
+				</div>
+			{/each}
+		</div>
+
+		{#if hasMore}
 			<button
 				type="button"
-				class="mx-auto flex w-full max-w-sm items-center justify-center gap-2 rounded-full border border-[var(--app-border-strong)] bg-white/95 px-4 py-2 text-sm font-medium text-[var(--app-primary-strong)] shadow-sm backdrop-blur"
-				onclick={applyPendingHeadPosts}
+				disabled={loading}
+				class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+				onclick={() => loadMore()}
 			>
-				<span class="icon-[lucide--arrow-up] size-4" aria-hidden="true"></span>
-				<span>
-					Có {pendingHeadPosts.length} bài viết mới
-				</span>
-				<span class="text-xs text-slate-500">Xem</span>
+				{loading ? 'Đang tải…' : 'Tải thêm'}
+			</button>
+		{/if}
+	</div>
+</section>
+
+{#if feedHashtagSidebar.open}
+	<div
+		class="fixed inset-0 z-40 bg-slate-950/35 backdrop-blur-sm lg:hidden"
+		role="presentation"
+		transition:fade={{ duration: 180 }}
+		onclick={closeHashtagDrawer}
+		onkeydown={onDrawerKeydown}
+	></div>
+
+	<div
+		class="fixed inset-y-0 left-0 z-50 flex w-[min(22rem,calc(100vw-2.5rem))] max-w-full flex-col border-r border-slate-200 bg-slate-50 shadow-2xl lg:hidden"
+		role="dialog"
+		aria-modal="true"
+		aria-label="Hashtag"
+		tabindex="-1"
+		transition:fly={{ x: -288, duration: 220 }}
+		onclick={(event) => event.stopPropagation()}
+		onkeydown={onDrawerKeydown}
+	>
+		<div class="flex items-center justify-between border-b border-slate-200/80 px-4 py-3">
+			<h2 class="text-base font-semibold text-slate-900">Hashtag</h2>
+			<button
+				type="button"
+				onclick={closeHashtagDrawer}
+				class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
+				aria-label="Đóng"
+			>
+				<span class="icon-[lucide--x] size-5" aria-hidden="true"></span>
 			</button>
 		</div>
-	{/if}
-
-	{#if error}
-		<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
-	{/if}
-
-	{#if feedEntries.length === 0 && !loading}
-		<p class="rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
-			Chưa có bài viết nào.
-		</p>
-	{/if}
-
-	<div class="space-y-3">
-		{#each feedEntries as entry (entry.key)}
-			<div
-				animate:flip={{ duration: 220, easing: (t) => t }}
-				in:fly={{
-					y: highlightedEntryKeys.includes(entry.key) ? -20 : 0,
-					opacity: highlightedEntryKeys.includes(entry.key) ? 0.55 : 1,
-					duration: highlightedEntryKeys.includes(entry.key) ? 240 : 0
-				}}
-				class={highlightedEntryKeys.includes(entry.key)
-					? 'origin-top transition duration-700 ease-out'
-					: ''}
-			>
-				{#if entry.kind === 'pending'}
-					<PendingPostCard post={entry.post} status={entry.status} error={entry.error} />
-				{:else}
-					<PostCard
-						post={entry.post}
-						onDelete={(id) => requestDelete(id)}
-						{onReactionsChange}
-						{onPublicationsChange}
-						{onCommentCountChange}
-						{onPostUpdated}
-					/>
-				{/if}
-			</div>
-		{/each}
+		<div class="min-h-0 flex-1 overflow-y-auto pb-4">
+			<HashtagSidebar
+				activeHashtag={currentHashtag}
+				onSelect={applyHashtagFilter}
+				onClear={removeHashtagFilter}
+				mobile
+				onRequestClose={closeHashtagDrawer}
+			/>
+		</div>
 	</div>
-
-	{#if hasMore}
-		<button
-			type="button"
-			disabled={loading}
-			class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-			onclick={() => loadMore()}
-		>
-			{loading ? 'Đang tải…' : 'Tải thêm'}
-		</button>
-	{/if}
-</section>
+{/if}
 
 <ConfirmDialog
 	open={deleteTargetID !== null}

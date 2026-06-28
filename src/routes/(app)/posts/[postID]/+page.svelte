@@ -8,6 +8,7 @@
 	import { deletePost, getPost } from '$lib/api/posts';
 	import PostCard from '$lib/components/post/PostCard.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import { hashtags } from '$lib/stores/hashtags.svelte';
 
 	let post = $state<Post | null>(null);
 	let loading = $state(true);
@@ -51,6 +52,7 @@
 		deleting = true;
 		try {
 			await deletePost(post.id);
+			void hashtags.refresh();
 			deleteOpen = false;
 			await goto(resolve('/feed'));
 		} catch (err) {

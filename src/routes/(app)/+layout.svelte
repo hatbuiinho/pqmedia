@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -8,13 +9,23 @@
 	import ProfileMenu from '$lib/components/layout/ProfileMenu.svelte';
 	import PostComposer from '$lib/components/post/PostComposer.svelte';
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
+	import ToastViewport from '$lib/components/ui/ToastViewport.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { feedHashtagSidebar } from '$lib/stores/feedHashtagSidebar.svelte';
+	import { notifications } from '$lib/stores/notifications.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
+	import {
+		currentPermission,
+		pushSupportState,
+		syncCurrentPushSubscription
+	} from '$lib/push/web-push';
 	import { APP_NAME } from '$lib/env';
+	import { pushToast } from '$lib/stores/toast.svelte';
 
 	let { children } = $props();
 	let composerOpen = $state(false);
 	let composerFullscreen = $state(false);
+	const isFeedPage = $derived(page.url.pathname === resolve('/feed'));
 
 	// Bottom-nav stays focused on browsing actions. Hồ sơ + admin + logout live
 	// in the profile dropdown (ProfileMenu) at the top-right of the topbar.
@@ -32,16 +43,71 @@
 	// Refresh principal once when the protected shell mounts. Kept out of +layout.ts
 	// load() because writing to $state from there can re-trigger load(), and SvelteKit
 	// also warns when load() uses window.fetch instead of event.fetch.
-	onMount(async () => {
-		try {
-			await fetchMe();
-			await platforms.ensureLoaded(true);
-		} catch (err) {
-			if (err instanceof ApiError && err.status === 401) {
-				auth.clear();
-				await goto(resolve('/login'), { replaceState: true });
+	onMount(() => {
+		let cancelled = false;
+		const messageHandler = (event: MessageEvent) => {
+			if (!event.data || typeof event.data !== 'object') return;
+			if (event.data.type === 'PUSH_NOTIFICATION_RECEIVED') {
+				notifications.increaseUnread();
+				void notifications.refresh().catch(() => undefined);
+				const payload = event.data.payload as {
+					title?: string;
+					body?: string;
+					url?: string;
+				};
+				pushToast(
+					payload.body || 'Bạn có thông báo mới',
+					'info',
+					5000,
+					{
+						label: 'Mở',
+						onClick: () => {
+							if (payload.url) {
+								window.location.assign(payload.url);
+								return;
+							}
+							return goto(resolve('/notifications'));
+						}
+					},
+					payload.title || 'Thông báo'
+				);
+				return;
 			}
+			if (event.data.type === 'PUSH_NOTIFICATION_CLICKED' && typeof event.data.url === 'string') {
+				window.location.assign(event.data.url);
+			}
+		};
+
+		if (browser && 'serviceWorker' in navigator) {
+			navigator.serviceWorker.addEventListener('message', messageHandler);
 		}
+
+		void (async () => {
+			try {
+				await fetchMe();
+				await Promise.all([platforms.ensureLoaded(true), notifications.refresh()]);
+
+				if (
+					!cancelled &&
+					pushSupportState() === 'ready' &&
+					(await currentPermission()) === 'granted'
+				) {
+					void syncCurrentPushSubscription(navigator.platform).catch(() => undefined);
+				}
+			} catch (err) {
+				if (err instanceof ApiError && err.status === 401) {
+					auth.clear();
+					await goto(resolve('/login'), { replaceState: true });
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+			if (browser && 'serviceWorker' in navigator) {
+				navigator.serviceWorker.removeEventListener('message', messageHandler);
+			}
+		};
 	});
 
 	async function onLogout() {
@@ -67,14 +133,31 @@
 </script>
 
 <div class="flex min-h-dvh flex-col bg-slate-50">
-	<header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/88 backdrop-blur">
-		<div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-			<a href={resolve('/feed')} class="font-semibold text-slate-900">{APP_NAME}</a>
+	<ToastViewport />
+	<header class="fixed inset-x-0 top-0 z-30 border-b border-slate-200/80 bg-white/88 backdrop-blur">
+		<div
+			class={`mx-auto flex items-center justify-between px-4 py-3 ${isFeedPage ? 'max-w-[88rem]' : 'max-w-3xl'}`}
+		>
+			<div class="flex items-center gap-2">
+				{#if isFeedPage}
+					<button
+						type="button"
+						onclick={() => feedHashtagSidebar.toggle()}
+						class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+						aria-label="Mở danh sách hashtag"
+					>
+						<span class="icon-[lucide--menu] size-5" aria-hidden="true"></span>
+					</button>
+				{/if}
+				<a href={resolve('/feed')} class="font-semibold text-slate-900">{APP_NAME}</a>
+			</div>
 			<ProfileMenu onLogout={() => onLogout()} />
 		</div>
 	</header>
 
-	<main class="mx-auto w-full max-w-3xl flex-1 px-4 py-4 pb-32">
+	<main
+		class={`mx-auto w-full flex-1 px-4 pt-[4.75rem] pb-32 ${isFeedPage ? 'max-w-[88rem]' : 'max-w-3xl'}`}
+	>
 		{@render children()}
 	</main>
 
@@ -103,11 +186,19 @@
 					title={item.label}
 					aria-label={item.label}
 					aria-current={active ? 'page' : undefined}
-					class="grid justify-items-center rounded-[0.95rem] px-2 py-2 text-[0.72rem] font-semibold transition active:translate-y-px sm:gap-0.5 {active
+					class="relative grid justify-items-center rounded-[0.95rem] px-2 py-2 text-[0.72rem] font-semibold transition active:translate-y-px sm:gap-0.5 {active
 						? 'bg-[var(--app-primary-soft)] text-[var(--app-primary-strong)]'
 						: 'text-slate-500 hover:bg-slate-100/90 hover:text-slate-900'}"
 				>
 					<span class="{item.icon} text-2xl sm:text-xl" aria-hidden="true"></span>
+					{#if item.href === resolve('/notifications') && notifications.unreadCount > 0}
+						<span
+							class="absolute top-1.5 right-3 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm"
+							aria-label={`${notifications.unreadCount} thông báo chưa đọc`}
+						>
+							{notifications.unreadCount > 99 ? '99+' : notifications.unreadCount}
+						</span>
+					{/if}
 					<span class="sr-only sm:not-sr-only">{item.label}</span>
 				</a>
 			{/if}
