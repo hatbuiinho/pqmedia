@@ -1,138 +1,92 @@
 <script lang="ts">
-	import type { AttachmentKind, PostAttachmentInput } from '$contracts/backend';
-	import { ApiError } from '$lib/api/client';
-	import { createPost } from '$lib/api/posts';
-	import { uploadFile } from '$lib/api/uploads';
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
-	import { extractHashtags } from '$lib/utils/hashtags';
+	import { postComposer } from '$lib/stores/postComposer.svelte';
 	import MediaPicker, { type PickerItem } from './MediaPicker.svelte';
 
 	interface Props {
-		onCreated: (postID: string) => void;
+		onSubmitted?: () => void;
 		autofocus?: boolean;
 	}
 
-	let { onCreated, autofocus = false }: Props = $props();
-
-	let content = $state('');
-
-	const extractedHashtags = $derived.by(() => extractHashtags(content));
-
-	// Pending files keep their own blob URL for preview; we upload them on submit.
-	interface PendingMedia {
-		id: string;
-		file: File;
-		kind: AttachmentKind;
-		url: string;
-	}
-	let pending = $state<PendingMedia[]>([]);
-	let busy = $state(false);
-	let error = $state<string | null>(null);
-
-	let pendingCounter = 0;
+	let { onSubmitted, autofocus = false }: Props = $props();
 
 	const items = $derived<PickerItem[]>(
-		pending.map((p) => ({
-			id: p.id,
-			kind: p.kind,
-			url: p.url,
-			file_name: p.file.name,
-			isPending: true
+		postComposer.media.map((entry) => ({
+			id: entry.id,
+			kind: entry.kind,
+			url: entry.url,
+			file_name: entry.file.name,
+			status: entry.status
 		}))
 	);
 
-	const hasMedia = $derived(pending.length > 0);
-	const canSubmit = $derived((content.trim() !== '' || hasMedia) && !busy);
-
-	function addFiles(files: File[]) {
-		const next: PendingMedia[] = files.map((file) => ({
-			id: `pending-${++pendingCounter}`,
-			file,
-			kind: file.type.startsWith('video/') ? 'video' : 'image',
-			url: URL.createObjectURL(file)
-		}));
-		pending = [...pending, ...next];
-	}
-
-	function removeItem(id: string) {
-		pending = pending.filter((p) => p.id !== id);
-	}
-
-	function reorderItems(orderedIds: string[]) {
-		const byId = new Map(pending.map((p) => [p.id, p]));
-		pending = orderedIds.map((id) => byId.get(id)).filter((p): p is PendingMedia => !!p);
-	}
-
-	async function uploadPending(): Promise<PostAttachmentInput[]> {
-		const out: PostAttachmentInput[] = [];
-		for (const [sort_order, p] of pending.entries()) {
-			const uploaded = await uploadFile(p.file, p.kind);
-			out.push({
-				kind: p.kind,
-				file_name: uploaded.file_name,
-				content_type: uploaded.content_type,
-				bucket: uploaded.bucket,
-				object_key: uploaded.object_key,
-				size_bytes: uploaded.size_bytes,
-				width: uploaded.width ?? null,
-				height: uploaded.height ?? null,
-				duration_ms: uploaded.duration_ms ?? null,
-				sort_order
-			});
+	const busyLabel = $derived.by(() => {
+		switch (postComposer.publishStatus) {
+			case 'waiting_uploads':
+				return 'Đang tải lên';
+			case 'publishing':
+				return 'Đang đăng';
+			case 'failed':
+				return 'Đăng lại';
+			default:
+				return 'Đăng';
 		}
-		return out;
-	}
+	});
 
 	async function onSubmit(event: SubmitEvent) {
 		event.preventDefault();
-		if (!canSubmit) return;
-		busy = true;
-		error = null;
-		try {
-			const attachments = await uploadPending();
-			const post = await createPost({
-				content: content.trim(),
-				attachments,
-				hashtags: extractedHashtags
-			});
-			content = '';
-			for (const p of pending) URL.revokeObjectURL(p.url);
-			pending = [];
-			onCreated(post.id);
-		} catch (err) {
-			error = err instanceof ApiError ? err.message : 'Đăng bài thất bại';
-		} finally {
-			busy = false;
-		}
+		const accepted = await postComposer.submit();
+		if (accepted) onSubmitted?.();
 	}
 </script>
 
-<form class="space-y-3 rounded-2xl bg-white p-4 shadow-sm" onsubmit={onSubmit}>
+<form
+	class="flex min-h-full flex-col space-y-3 rounded-2xl bg-white p-4 shadow-sm sm:min-h-[32rem] sm:p-5"
+	onsubmit={onSubmit}
+>
 	<HashtagEditor
-		bind:value={content}
+		bind:value={postComposer.content}
 		placeholder="Bạn đang nghĩ gì? Thêm hashtag bằng cách gõ #..."
+		disabled={postComposer.isPublishingLocked}
+		editorClass="min-h-40 sm:min-h-72"
 		{autofocus}
 	/>
 
 	<MediaPicker
 		{items}
-		disabled={busy}
-		onAddFiles={addFiles}
-		onRemove={removeItem}
-		onReorder={reorderItems}
+		disabled={postComposer.isPublishingLocked}
+		onAddFiles={(files) => postComposer.addFiles(files)}
+		onRemove={(id) => postComposer.removeMedia(id)}
+		onReorder={(orderedIds) => postComposer.reorderMedia(orderedIds)}
 	/>
 
-	{#if error}
-		<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+	{#if postComposer.error}
+		<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{postComposer.error}</p>
 	{/if}
 
-	<div class="flex items-center justify-end">
+	{#if postComposer.uploadingCount > 0}
+		<p class="text-xs text-slate-500">
+			Đang tải {postComposer.uploadingCount} tệp lên nền. Bạn có thể đóng cửa sổ này.
+		</p>
+	{/if}
+
+	<div class="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+		<p class="text-xs text-slate-500">
+			{#if postComposer.publishStatus === 'waiting_uploads'}
+				Bài viết sẽ tự đăng ngay khi upload xong.
+			{:else if postComposer.publishStatus === 'publishing'}
+				Bài viết đang được đăng nền.
+			{:else if postComposer.failedCount > 0}
+				Có {postComposer.failedCount} tệp tải lỗi.
+			{/if}
+		</p>
+
 		<button
 			type="submit"
-			disabled={!canSubmit}
-			class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+			disabled={!postComposer.canSubmit}
+			class="rounded-lg bg-[var(--app-primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--app-primary-strong)] disabled:opacity-60"
 		>
-			{busy ? 'Đang đăng…' : 'Đăng'}
+			{busyLabel}
 		</button>
 	</div>
 </form>

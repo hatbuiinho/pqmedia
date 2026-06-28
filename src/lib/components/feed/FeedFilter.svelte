@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PublicationPlatform } from '$contracts/backend';
-	import { PLATFORMS } from '$lib/constants/platforms';
+	import LucideIcon from '$lib/components/ui/LucideIcon.svelte';
+	import { platforms } from '$lib/stores/platforms.svelte';
 
 	interface Props {
 		/** Platforms to show only posts that have NOT been published there. */
@@ -39,7 +40,7 @@
 		{/if}
 	</div>
 	<div class="flex flex-wrap gap-1.5">
-		{#each PLATFORMS as p (p.key)}
+		{#each platforms.activeItems as p (p.key)}
 			{@const active = isActive(p.key)}
 			<button
 				type="button"
@@ -51,7 +52,7 @@
 					? 'bg-slate-900 text-white'
 					: 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"
 			>
-				<span class={p.icon} aria-hidden="true"></span>
+				<LucideIcon icon={p.icon} className="size-3.5" />
 				{p.label}
 			</button>
 		{/each}

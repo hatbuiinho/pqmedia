@@ -7,12 +7,14 @@
 	import { ApiError } from '$lib/api/client';
 	import ProfileMenu from '$lib/components/layout/ProfileMenu.svelte';
 	import PostComposer from '$lib/components/post/PostComposer.svelte';
+	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { platforms } from '$lib/stores/platforms.svelte';
 	import { APP_NAME } from '$lib/env';
-	import { clickOutside } from '$lib/utils/clickOutside';
 
 	let { children } = $props();
 	let composerOpen = $state(false);
+	let composerFullscreen = $state(false);
 
 	// Bottom-nav stays focused on browsing actions. Hồ sơ + admin + logout live
 	// in the profile dropdown (ProfileMenu) at the top-right of the topbar.
@@ -33,6 +35,7 @@
 	onMount(async () => {
 		try {
 			await fetchMe();
+			await platforms.ensureLoaded(true);
 		} catch (err) {
 			if (err instanceof ApiError && err.status === 401) {
 				auth.clear();
@@ -52,13 +55,13 @@
 
 	function closeComposer() {
 		composerOpen = false;
+		composerFullscreen = false;
 	}
 
-	async function onComposerCreated() {
+	async function onComposerSubmitted() {
 		composerOpen = false;
 		await goto(resolve('/feed'), {
-			replaceState: page.url.pathname === resolve('/feed'),
-			invalidateAll: true
+			replaceState: page.url.pathname === resolve('/feed')
 		});
 	}
 </script>
@@ -77,7 +80,7 @@
 
 	<nav
 		aria-label="Điều hướng chính"
-		class="fixed bottom-4 left-1/2 z-30 grid w-[min(calc(100%-1.5rem),48rem)] -translate-x-1/2 grid-cols-3 gap-2 rounded-[1.4rem] border bg-white/92 p-2 shadow-[var(--app-shell-shadow)] backdrop-blur-xl [border-color:var(--app-border-strong)]"
+		class="fixed right-3 bottom-3 left-3 z-30 mx-auto grid max-w-3xl grid-cols-3 gap-1 rounded-[1.2rem] border bg-white/94 p-1 backdrop-blur-lg [border-color:var(--app-border-strong)] sm:left-1/2 sm:w-[min(calc(100%-1.5rem),48rem)] sm:-translate-x-1/2"
 	>
 		{#each navItems as item (item.href)}
 			{@const active = page.url.pathname.startsWith(item.href)}
@@ -89,7 +92,7 @@
 					aria-haspopup="dialog"
 					aria-expanded={composerOpen}
 					onclick={openComposer}
-					class="grid justify-items-center rounded-2xl bg-linear-to-r from-[var(--app-primary)] to-[var(--app-secondary)] px-2 py-3 text-[0.77rem] font-bold text-white shadow-[0_12px_28px_rgba(91,108,255,0.18)] transition active:translate-y-px sm:gap-1 sm:py-2.5"
+					class="grid -translate-y-3 justify-items-center rounded-[1rem] bg-linear-to-r from-[var(--app-primary)] to-[var(--app-secondary)] px-2 py-2.5 text-[0.72rem] font-bold text-white shadow-[0_14px_30px_rgba(68,105,156,0.24)] ring-4 ring-[var(--color-slate-50)] transition active:translate-y-[-0.65rem] sm:gap-0.5 sm:py-2"
 				>
 					<span class="{item.icon} text-2xl sm:text-xl" aria-hidden="true"></span>
 					<span class="sr-only sm:not-sr-only">{item.label}</span>
@@ -100,9 +103,9 @@
 					title={item.label}
 					aria-label={item.label}
 					aria-current={active ? 'page' : undefined}
-					class="grid justify-items-center rounded-2xl px-2 py-3 text-[0.77rem] font-semibold transition active:translate-y-px sm:gap-1 sm:py-2.5 {active
-						? 'bg-[var(--app-primary-soft)] text-[var(--app-primary-strong)] shadow-sm ring-1 ring-[color:var(--app-border-strong)]'
-						: 'text-slate-500 hover:bg-white/80 hover:text-slate-900'}"
+					class="grid justify-items-center rounded-[0.95rem] px-2 py-2 text-[0.72rem] font-semibold transition active:translate-y-px sm:gap-0.5 {active
+						? 'bg-[var(--app-primary-soft)] text-[var(--app-primary-strong)]'
+						: 'text-slate-500 hover:bg-slate-100/90 hover:text-slate-900'}"
 				>
 					<span class="{item.icon} text-2xl sm:text-xl" aria-hidden="true"></span>
 					<span class="sr-only sm:not-sr-only">{item.label}</span>
@@ -113,35 +116,55 @@
 </div>
 
 {#if composerOpen}
-	<button
-		type="button"
-		class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-		aria-label="Đóng trình tạo bài viết"
-		onclick={closeComposer}
-	></button>
-	<div
-		role="dialog"
-		aria-modal="true"
-		aria-label="Tạo bài viết"
-		tabindex="-1"
-		class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-3xl border border-slate-200 bg-slate-50 p-4 shadow-2xl sm:inset-x-auto sm:top-1/2 sm:left-1/2 sm:w-[min(42rem,calc(100vw-2rem))] sm:max-h-[calc(100dvh-4rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl"
-		use:clickOutside={{ enabled: composerOpen, onDismiss: closeComposer }}
-		onclick={(event) => event.stopPropagation()}
-		onkeydown={(event) => event.stopPropagation()}
+	<ModalSurface
+		open={composerOpen}
+		label="Tạo bài viết"
+		onClose={closeComposer}
+		containerClass="flex items-end sm:items-center sm:justify-center sm:p-4"
+		panelClass={`flex w-full min-h-0 flex-col border border-slate-200 bg-slate-50 shadow-2xl ${
+			composerFullscreen
+				? 'sm:h-[calc(100dvh-1rem)] sm:w-[calc(100vw-1rem)] sm:rounded-[1.75rem]'
+				: 'max-h-[85dvh] rounded-t-3xl sm:h-[min(52rem,calc(100dvh-4rem))] sm:w-[min(58rem,calc(100vw-2rem))] sm:rounded-3xl'
+		}`}
 	>
-		<div class="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300 sm:hidden"></div>
-		<div class="mb-3 flex items-center justify-between">
-			<h2 class="text-base font-semibold text-slate-900">Đăng bài</h2>
-			<button
-				type="button"
-				onclick={closeComposer}
-				class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
-				aria-label="Đóng"
-			>
-				<span class="icon-[lucide--x] size-5" aria-hidden="true"></span>
-			</button>
+		<div class="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-slate-300 sm:hidden"></div>
+		<div
+			class="flex items-center justify-between gap-3 border-b border-slate-200/80 px-4 py-3 sm:px-5"
+		>
+			<div class="min-w-0">
+				<h2 class="text-base font-semibold text-slate-900">Đăng bài</h2>
+				<p class="hidden text-xs text-slate-500 sm:block">
+					Soạn nội dung, tải media nền và có thể đóng cửa sổ trong lúc hệ thống tiếp tục đăng.
+				</p>
+			</div>
+			<div class="flex items-center gap-2">
+				<button
+					type="button"
+					onclick={() => (composerFullscreen = !composerFullscreen)}
+					class="hidden h-9 min-w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 sm:grid"
+					aria-label={composerFullscreen ? 'Thu nhỏ cửa sổ đăng bài' : 'Mở toàn màn hình'}
+					title={composerFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+				>
+					<span
+						class={composerFullscreen
+							? 'icon-[lucide--minimize-2] size-5'
+							: 'icon-[lucide--maximize-2] size-5'}
+						aria-hidden="true"
+					></span>
+				</button>
+				<button
+					type="button"
+					onclick={closeComposer}
+					class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-200 hover:text-slate-900"
+					aria-label="Đóng"
+				>
+					<span class="icon-[lucide--x] size-5" aria-hidden="true"></span>
+				</button>
+			</div>
 		</div>
 
-		<PostComposer autofocus onCreated={() => onComposerCreated()} />
-	</div>
+		<div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+			<PostComposer autofocus onSubmitted={() => onComposerSubmitted()} />
+		</div>
+	</ModalSurface>
 {/if}

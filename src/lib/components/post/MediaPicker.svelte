@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
 	import { dndzone, type DndEvent } from 'svelte-dnd-action';
 	import { aspectClass, getSpan, spanClass } from './mediaGridLayout';
 
@@ -8,18 +7,18 @@
 	 * Smart layout (see mediaGridLayout.ts) + drag-and-drop reorder via svelte-dnd-action.
 	 *
 	 * The parent owns the source-of-truth state; this component only renders + fires
-	 * callbacks. Blob URLs for pending files are revoked on remove / unmount to avoid
-	 * leaking object URLs.
+	 * callbacks. Blob URL lifecycle also belongs to the parent because composer drafts
+	 * can outlive this component while sheets open/close.
 	 */
 
 	export interface PickerItem {
 		/** Stable id used as keyed-each key and passed back to callbacks. */
 		id: string;
 		kind: 'image' | 'video';
-		/** Either MinIO public URL (existing) or a blob URL (pending). */
+		/** Either MinIO public URL (existing) or a blob URL (local selection). */
 		url: string;
 		file_name: string;
-		isPending?: boolean;
+		status?: 'pending' | 'uploading' | 'uploaded' | 'failed';
 	}
 
 	interface Props {
@@ -55,20 +54,6 @@
 		onReorder?.(dndItems.map((i) => i.id));
 	}
 
-	// Track blob URLs the parent passed in so we can revoke them on unmount.
-	const trackedBlobUrls: string[] = [];
-	$effect(() => {
-		for (const item of items) {
-			if (item.url.startsWith('blob:') && !trackedBlobUrls.includes(item.url)) {
-				trackedBlobUrls.push(item.url);
-			}
-		}
-	});
-	onDestroy(() => {
-		for (const url of trackedBlobUrls) URL.revokeObjectURL(url);
-		trackedBlobUrls.length = 0;
-	});
-
 	function handleAdd(event: Event) {
 		const input = event.target as HTMLInputElement;
 		if (!input.files || input.files.length === 0) return;
@@ -77,11 +62,6 @@
 	}
 
 	function handleRemove(item: PickerItem) {
-		if (item.url.startsWith('blob:')) {
-			URL.revokeObjectURL(item.url);
-			const idx = trackedBlobUrls.indexOf(item.url);
-			if (idx >= 0) trackedBlobUrls.splice(idx, 1);
-		}
 		onRemove(item.id);
 	}
 </script>
@@ -121,11 +101,23 @@
 						/>
 					{/if}
 
-					{#if item.isPending}
+					{#if item.status === 'pending'}
 						<span
 							class="absolute top-1 left-8 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
 						>
 							Chưa tải
+						</span>
+					{:else if item.status === 'uploading'}
+						<span
+							class="absolute top-1 left-8 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+						>
+							Đang tải
+						</span>
+					{:else if item.status === 'failed'}
+						<span
+							class="absolute top-1 left-8 rounded-full bg-rose-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white"
+						>
+							Lỗi tải
 						</span>
 					{/if}
 

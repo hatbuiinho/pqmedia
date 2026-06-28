@@ -130,15 +130,15 @@
 		}
 
 		const rootRect = rootEl.getBoundingClientRect();
-		const width = Math.min(220, window.innerWidth - 24);
+		const width = Math.min(Math.max(rootRect.width, 220), 320, window.innerWidth - 24);
 		const left = Math.max(12, Math.min(rootRect.left, window.innerWidth - width - 12));
 		const spaceBelow = window.innerHeight - rootRect.bottom;
 		const shouldPlaceAbove = spaceBelow < 220 && rootRect.top > 220;
 		isPopoverAbove = shouldPlaceAbove;
 
 		if (shouldPlaceAbove) {
-			const bottom = window.innerHeight - rootRect.top + 8;
-			menuStyle = `position:fixed;left:${left}px;bottom:${bottom}px;width:${width}px;max-height:192px;`;
+			const top = Math.max(12, rootRect.top - 200);
+			menuStyle = `position:fixed;left:${left}px;top:${top}px;width:${width}px;max-height:192px;`;
 		} else {
 			const top = Math.min(window.innerHeight - 204, rootRect.bottom + 8);
 			menuStyle = `position:fixed;left:${left}px;top:${top}px;width:${width}px;max-height:192px;`;
@@ -197,7 +197,7 @@
 
 	{#if menuOpen && candidates.length > 0}
 		<div
-			class="z-[120] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+			class="fixed z-[200] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
 			style={menuStyle}
 		>
 			<div class="scrollbar-hidden max-h-48 overflow-y-auto p-1.5">

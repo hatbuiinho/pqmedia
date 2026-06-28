@@ -2,8 +2,9 @@
 	import type { PostPublication, PublicationPlatform } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { upsertPublication } from '$lib/api/publications';
-	import { PLATFORMS } from '$lib/constants/platforms';
-	import { clickOutside } from '$lib/utils/clickOutside';
+	import LucideIcon from '$lib/components/ui/LucideIcon.svelte';
+	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
+	import { platforms } from '$lib/stores/platforms.svelte';
 
 	interface Props {
 		open: boolean;
@@ -27,7 +28,7 @@
 	$effect(() => {
 		if (open && !lastOpen) {
 			const publishedKeys = new Set(currentPublications.map((p) => p.platform));
-			selected = PLATFORMS.map((p) => p.key).filter((k) => !publishedKeys.has(k));
+			selected = platforms.activeItems.map((p) => p.key).filter((k) => !publishedKeys.has(k));
 			error = null;
 		}
 		lastOpen = open;
@@ -78,80 +79,75 @@
 </script>
 
 {#if open}
-	<div
-		class="fixed inset-0 z-40 grid place-items-center bg-black/40 backdrop-blur-sm px-4"
-		role="presentation"
+	<ModalSurface
+		{open}
+		label="Đánh dấu đã đăng"
+		{onClose}
+		containerClass="grid place-items-center px-4"
+		panelClass="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
 	>
-		<div
-			class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
-			role="dialog"
-			aria-modal="true"
-			aria-label="Đánh dấu đã đăng"
-			use:clickOutside={{ enabled: open, onDismiss: onClose }}
-		>
-			<header class="mb-3 flex items-start justify-between gap-3">
-				<div>
-					<h2 class="text-base font-semibold text-slate-900">Đã đăng ở đâu?</h2>
-					<p class="mt-0.5 text-xs text-slate-500">
-						Chọn nền tảng bạn vừa đăng để app khỏi nhắc đăng lại.
-					</p>
-				</div>
-				<button
-					type="button"
-					onclick={onClose}
-					aria-label="Đóng"
-					class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-				>
-					<span class="icon-[lucide--x] text-base" aria-hidden="true"></span>
-				</button>
-			</header>
-
-			<div class="grid grid-cols-2 gap-2">
-				{#each PLATFORMS as p (p.key)}
-					{@const published = alreadyPublished(p.key)}
-					{@const checked = isSelected(p.key)}
-					<button
-						type="button"
-						disabled={published || saving}
-						onclick={() => toggle(p.key)}
-						aria-pressed={checked}
-						class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 {checked
-							? 'border-slate-900 bg-slate-900 text-white'
-							: published
-								? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-								: 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'}"
-					>
-						<span class="{p.icon} text-base" aria-hidden="true"></span>
-						<span class="flex-1 text-left">{p.label}</span>
-						{#if published}
-							<span class="icon-[lucide--check] text-sm" aria-hidden="true"></span>
-						{/if}
-					</button>
-				{/each}
+		<header class="mb-3 flex items-start justify-between gap-3">
+			<div>
+				<h2 class="text-base font-semibold text-slate-900">Đã đăng ở đâu?</h2>
+				<p class="mt-0.5 text-xs text-slate-500">
+					Chọn các nền tảng vừa đăng để mọi người tránh đăng trùng.
+				</p>
 			</div>
+			<button
+				type="button"
+				onclick={onClose}
+				aria-label="Đóng"
+				class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+			>
+				<span class="icon-[lucide--x] text-base" aria-hidden="true"></span>
+			</button>
+		</header>
 
-			{#if error}
-				<p class="mt-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
-			{/if}
-
-			<footer class="mt-4 flex items-center justify-end gap-2">
+		<div class="grid grid-cols-2 gap-2">
+			{#each platforms.activeItems as p (p.key)}
+				{@const published = alreadyPublished(p.key)}
+				{@const checked = isSelected(p.key)}
 				<button
 					type="button"
-					onclick={onClose}
-					disabled={saving}
-					class="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-60"
+					disabled={published || saving}
+					onclick={() => toggle(p.key)}
+					aria-pressed={checked}
+					class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 {checked
+						? 'border-slate-900 bg-slate-900 text-white'
+						: published
+							? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+							: 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'}"
 				>
-					Bỏ qua
+					<LucideIcon icon={p.icon} className="size-4" />
+					<span class="flex-1 text-left">{p.label}</span>
+					{#if published}
+						<span class="icon-[lucide--check] text-sm" aria-hidden="true"></span>
+					{/if}
 				</button>
-				<button
-					type="button"
-					onclick={onConfirm}
-					disabled={saving || selected.length === 0}
-					class="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-				>
-					{saving ? 'Đang lưu…' : 'Đã đăng'}
-				</button>
-			</footer>
+			{/each}
 		</div>
-	</div>
+
+		{#if error}
+			<p class="mt-3 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+		{/if}
+
+		<footer class="mt-4 flex items-center justify-end gap-2">
+			<button
+				type="button"
+				onclick={onClose}
+				disabled={saving}
+				class="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-60"
+			>
+				Bỏ qua
+			</button>
+			<button
+				type="button"
+				onclick={onConfirm}
+				disabled={saving || selected.length === 0}
+				class="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+			>
+				{saving ? 'Đang lưu…' : 'Đã đăng'}
+			</button>
+		</footer>
+	</ModalSurface>
 {/if}

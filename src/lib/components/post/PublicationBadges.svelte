@@ -2,6 +2,7 @@
 	import type { PostPublication, PublicationPlatform } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { deletePublication, upsertPublication } from '$lib/api/publications';
+	import { platforms } from '$lib/stores/platforms.svelte';
 
 	interface Props {
 		postID: string;
@@ -10,16 +11,6 @@
 	}
 
 	let { postID, publications, onChange }: Props = $props();
-
-	const PLATFORMS: { key: PublicationPlatform; label: string }[] = [
-		{ key: 'facebook', label: 'Facebook' },
-		{ key: 'instagram', label: 'Instagram' },
-		{ key: 'tiktok', label: 'TikTok' },
-		{ key: 'threads', label: 'Threads' },
-		{ key: 'youtube', label: 'YouTube' },
-		{ key: 'x', label: 'X' },
-		{ key: 'other', label: 'Khác' }
-	];
 
 	let busy = $state<PublicationPlatform | null>(null);
 	let editing = $state<PublicationPlatform | null>(null);
@@ -83,7 +74,7 @@
 
 <div class="space-y-2">
 	<div class="flex flex-wrap gap-1">
-		{#each PLATFORMS as p (p.key)}
+		{#each platforms.itemsForPublications(publications) as p (p.key)}
 			{@const on = isOn(p.key)}
 			<button
 				type="button"

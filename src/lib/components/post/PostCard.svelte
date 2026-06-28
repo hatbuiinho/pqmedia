@@ -11,7 +11,7 @@
 	} from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { updatePost } from '$lib/api/posts';
-	import { uploadFile } from '$lib/api/uploads';
+	import { uploadFile, type UploadResult } from '$lib/api/uploads';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { extractHashtags } from '$lib/utils/hashtags';
 	import { formatRelativeVi } from '$lib/utils/time';
@@ -19,6 +19,7 @@
 	import CommentList from './CommentList.svelte';
 	import MediaPicker, { type PickerItem } from './MediaPicker.svelte';
 	import PostActionsMenu from './PostActionsMenu.svelte';
+	import PostContentPreview from './PostContentPreview.svelte';
 	import PostMedia from './PostMedia.svelte';
 	import PublicationConfirmDialog from './PublicationConfirmDialog.svelte';
 	import PublicationManageSheet from './PublicationManageSheet.svelte';
@@ -86,6 +87,8 @@
 		mediaKind: AttachmentKind;
 		file: File;
 		url: string;
+		status: 'uploading' | 'uploaded' | 'failed';
+		uploaded?: UploadResult;
 	}
 	type MediaEntry = ExistingEntry | PendingEntry;
 
@@ -100,16 +103,22 @@
 						kind: e.mediaKind,
 						url: e.attachment.url,
 						file_name: e.attachment.file_name,
-						isPending: false
+						status: 'uploaded'
 					}
 				: {
 						id: e.id,
 						kind: e.mediaKind,
 						url: e.url,
 						file_name: e.file.name,
-						isPending: true
+						status: e.status
 					}
 		)
+	);
+	const editUploadingCount = $derived(
+		editMedia.filter((e) => e.kind === 'pending' && e.status === 'uploading').length
+	);
+	const editFailedCount = $derived(
+		editMedia.filter((e) => e.kind === 'pending' && e.status === 'failed').length
 	);
 
 	function handleShared() {
@@ -148,9 +157,12 @@
 			id: `pending-${++pendingCounter}`,
 			mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
 			file,
-			url: URL.createObjectURL(file)
+			url: URL.createObjectURL(file),
+			status: 'uploading'
 		}));
 		editMedia = [...editMedia, ...next];
+		editError = null;
+		for (const entry of next) void uploadEditEntry(entry.id);
 	}
 
 	function removeEditItem(id: string) {
@@ -180,7 +192,25 @@
 		return sortedA.some((t, i) => t !== sortedB[i]);
 	}
 
-	async function buildAttachmentInputs(): Promise<PostAttachmentInput[]> {
+	async function uploadEditEntry(id: string) {
+		const entry = editMedia.find((item) => item.id === id);
+		if (!entry || entry.kind !== 'pending') return;
+		try {
+			const uploaded = await uploadFile(entry.file, entry.mediaKind);
+			if (!editMedia.some((item) => item.id === id && item.kind === 'pending')) return;
+			editMedia = editMedia.map((item) =>
+				item.kind === 'pending' && item.id === id ? { ...item, status: 'uploaded', uploaded } : item
+			);
+		} catch (err) {
+			if (!editMedia.some((item) => item.id === id && item.kind === 'pending')) return;
+			editMedia = editMedia.map((item) =>
+				item.kind === 'pending' && item.id === id ? { ...item, status: 'failed' } : item
+			);
+			editError = err instanceof ApiError ? err.message : 'Tải ảnh/video lên thất bại';
+		}
+	}
+
+	function buildAttachmentInputs(): PostAttachmentInput[] {
 		const out: PostAttachmentInput[] = [];
 		for (const [sort_order, entry] of editMedia.entries()) {
 			if (entry.kind === 'existing') {
@@ -198,17 +228,16 @@
 					sort_order
 				});
 			} else {
-				const uploaded = await uploadFile(entry.file, entry.mediaKind);
 				out.push({
 					kind: entry.mediaKind,
-					file_name: uploaded.file_name,
-					content_type: uploaded.content_type,
-					bucket: uploaded.bucket,
-					object_key: uploaded.object_key,
-					size_bytes: uploaded.size_bytes,
-					width: uploaded.width ?? null,
-					height: uploaded.height ?? null,
-					duration_ms: uploaded.duration_ms ?? null,
+					file_name: entry.uploaded!.file_name,
+					content_type: entry.uploaded!.content_type,
+					bucket: entry.uploaded!.bucket,
+					object_key: entry.uploaded!.object_key,
+					size_bytes: entry.uploaded!.size_bytes,
+					width: entry.uploaded!.width ?? null,
+					height: entry.uploaded!.height ?? null,
+					duration_ms: entry.uploaded!.duration_ms ?? null,
 					sort_order
 				});
 			}
@@ -218,6 +247,14 @@
 
 	async function saveEdit() {
 		if (editSaving) return;
+		if (editUploadingCount > 0) {
+			editError = 'Ảnh/video vẫn đang tải lên. Chờ tải xong rồi lưu.';
+			return;
+		}
+		if (editFailedCount > 0) {
+			editError = 'Có tệp tải lỗi. Hãy bỏ tệp lỗi và thêm lại trước khi lưu.';
+			return;
+		}
 		const nextContent = editDraft.trim();
 		const contentChanged = nextContent !== post.content.trim();
 		const mediaChanged = attachmentsChanged();
@@ -236,7 +273,7 @@
 			} = {};
 			if (contentChanged) body.content = nextContent;
 			if (tagsChanged) body.hashtags = editHashtags;
-			if (mediaChanged) body.attachments = await buildAttachmentInputs();
+			if (mediaChanged) body.attachments = buildAttachmentInputs();
 			const updated = await updatePost(post.id, body);
 			onPostUpdated?.(updated);
 			for (const e of editMedia) {
@@ -249,11 +286,6 @@
 		} finally {
 			editSaving = false;
 		}
-	}
-
-	function confirmDelete() {
-		if (!confirm('Xoá bài này?')) return;
-		onDelete?.(post.id);
 	}
 </script>
 
@@ -281,7 +313,7 @@
 			canEdit={canEdit && !isEditing}
 			canDelete={canDelete && !!onDelete && !isEditing}
 			onEdit={startEdit}
-			onDelete={confirmDelete}
+			onDelete={() => onDelete?.(post.id)}
 		/>
 	</header>
 
@@ -298,6 +330,15 @@
 				onRemove={removeEditItem}
 				onReorder={reorderEditItems}
 			/>
+			{#if editUploadingCount > 0}
+				<p class="text-xs text-slate-500">
+					Đang tải {editUploadingCount} tệp lên nền. Có thể tiếp tục sửa nội dung trong lúc chờ.
+				</p>
+			{:else if editFailedCount > 0}
+				<p class="text-xs text-rose-600">
+					Có {editFailedCount} tệp tải lỗi. Bỏ tệp lỗi và thêm lại trước khi lưu.
+				</p>
+			{/if}
 			{#if editError}
 				<p class="rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">{editError}</p>
 			{/if}
@@ -313,7 +354,7 @@
 				<button
 					type="button"
 					onclick={saveEdit}
-					disabled={editSaving}
+					disabled={editSaving || editUploadingCount > 0 || editFailedCount > 0}
 					class="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
 				>
 					{editSaving ? 'Đang lưu…' : 'Lưu'}
@@ -321,7 +362,7 @@
 			</div>
 		</div>
 	{:else if post.content}
-		<p class="whitespace-pre-wrap text-sm text-slate-800">{post.content}</p>
+		<PostContentPreview content={post.content} />
 	{/if}
 
 	{#if post.hashtags && post.hashtags.length > 0}
@@ -341,18 +382,9 @@
 		<PostMedia attachments={post.attachments} />
 	{/if}
 
-	{#if isMine}
-		<div class="border-t border-slate-100 pt-3">
-			<PublicationStatus
-				publications={post.publications}
-				onOpenManage={() => (manageOpen = true)}
-			/>
-		</div>
-	{:else if post.publications.length > 0}
-		<div class="border-t border-slate-100 pt-3">
-			<PublicationStatus publications={post.publications} />
-		</div>
-	{/if}
+	<div class="border-t border-slate-100 pt-3">
+		<PublicationStatus publications={post.publications} onOpenManage={() => (manageOpen = true)} />
+	</div>
 
 	<footer class="flex items-center gap-4 border-t border-slate-100 pt-3">
 		<button

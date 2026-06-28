@@ -7,10 +7,13 @@
 	import { ApiError } from '$lib/api/client';
 	import { deletePost, getPost } from '$lib/api/posts';
 	import PostCard from '$lib/components/post/PostCard.svelte';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 
 	let post = $state<Post | null>(null);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let deleteOpen = $state(false);
+	let deleting = $state(false);
 
 	const postID = $derived(page.params.postID ?? '');
 
@@ -33,13 +36,27 @@
 		}
 	}
 
-	async function onDelete(id: string) {
-		if (!confirm('Xoá bài này?')) return;
+	function requestDelete() {
+		if (deleting) return;
+		deleteOpen = true;
+	}
+
+	function cancelDelete() {
+		if (deleting) return;
+		deleteOpen = false;
+	}
+
+	async function confirmDelete() {
+		if (!post || deleting) return;
+		deleting = true;
 		try {
-			await deletePost(id);
+			await deletePost(post.id);
+			deleteOpen = false;
 			await goto(resolve('/feed'));
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'Xoá thất bại';
+		} finally {
+			deleting = false;
 		}
 	}
 
@@ -71,7 +88,7 @@
 		<PostCard
 			{post}
 			startWithCommentsOpen={true}
-			onDelete={(id) => onDelete(id)}
+			onDelete={() => requestDelete()}
 			{onReactionsChange}
 			{onPublicationsChange}
 			{onCommentCountChange}
@@ -79,3 +96,14 @@
 		/>
 	{/if}
 </section>
+
+<ConfirmDialog
+	open={deleteOpen}
+	title="Xoá bài viết?"
+	message="Bài viết và các bình luận liên quan sẽ bị xoá khỏi bảng tin."
+	confirmText="Xoá bài"
+	danger
+	busy={deleting}
+	onConfirm={confirmDelete}
+	onCancel={cancelDelete}
+/>

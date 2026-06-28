@@ -18,12 +18,17 @@ export function upsertPublication(
 	platform: PublicationPlatform,
 	body: UpsertPublicationRequest = {}
 ) {
-	return apiFetch<PostPublication>(`/posts/${postID}/publications/${platform}`, {
-		method: 'PUT',
-		body
-	});
+	return apiFetch<PostPublication>(
+		`/posts/${postID}/publications/${encodeURIComponent(platform)}`,
+		{
+			method: 'PUT',
+			body
+		}
+	);
 }
 
 export function deletePublication(postID: string, platform: PublicationPlatform) {
-	return apiFetch<void>(`/posts/${postID}/publications/${platform}`, { method: 'DELETE' });
+	return apiFetch<void>(`/posts/${postID}/publications/${encodeURIComponent(platform)}`, {
+		method: 'DELETE'
+	});
 }

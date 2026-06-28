@@ -5,6 +5,7 @@
 	import { createComment, deleteComment, listComments } from '$lib/api/comments';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formatRelativeVi } from '$lib/utils/time';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ReactionControl from './ReactionControl.svelte';
 
 	interface Props {
@@ -23,6 +24,8 @@
 
 	let draft = $state('');
 	let posting = $state(false);
+	let deleteTargetID = $state<string | null>(null);
+	let deleting = $state(false);
 
 	// Plain (non-reactive) guard: `load()` cascades to onCountChange → parent
 	// updates `post` → new prop reference back into this component. Without the
@@ -67,14 +70,29 @@
 		}
 	}
 
-	async function onDelete(id: string) {
-		if (!confirm('Xoá bình luận?')) return;
+	function requestDelete(id: string) {
+		if (deleting) return;
+		deleteTargetID = id;
+	}
+
+	function cancelDelete() {
+		if (deleting) return;
+		deleteTargetID = null;
+	}
+
+	async function confirmDelete() {
+		if (!deleteTargetID || deleting) return;
+		const id = deleteTargetID;
+		deleting = true;
 		try {
 			await deleteComment(id);
 			comments = comments.filter((c) => c.id !== id);
 			onCountChange?.(comments.length);
+			deleteTargetID = null;
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'Xoá thất bại';
+		} finally {
+			deleting = false;
 		}
 	}
 
@@ -113,7 +131,7 @@
 									<button
 										type="button"
 										class="ml-auto text-xs text-slate-400 transition hover:text-rose-600"
-										onclick={() => onDelete(c.id)}
+										onclick={() => requestDelete(c.id)}
 									>
 										Xoá
 									</button>
@@ -148,9 +166,20 @@
 		<button
 			type="submit"
 			disabled={posting || draft.trim() === ''}
-			class="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+			class="rounded-lg bg-[var(--app-primary)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--app-primary-strong)] disabled:opacity-60"
 		>
 			{posting ? '…' : 'Gửi'}
 		</button>
 	</form>
 </section>
+
+<ConfirmDialog
+	open={deleteTargetID !== null}
+	title="Xoá bình luận?"
+	message="Bình luận này sẽ bị xoá khỏi cuộc trò chuyện."
+	confirmText="Xoá bình luận"
+	danger
+	busy={deleting}
+	onConfirm={confirmDelete}
+	onCancel={cancelDelete}
+/>

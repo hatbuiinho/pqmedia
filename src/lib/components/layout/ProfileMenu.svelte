@@ -70,6 +70,16 @@
 					<span class="icon-[lucide--users] text-base text-slate-500" aria-hidden="true"></span>
 					Quản trị người dùng
 				</a>
+				<a
+					href={resolve('/platforms')}
+					role="menuitem"
+					onclick={close}
+					class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+				>
+					<span class="icon-[lucide--square-kanban] text-base text-slate-500" aria-hidden="true"
+					></span>
+					Quản lý nền tảng
+				</a>
 			{/if}
 
 			<div class="my-1 border-t border-slate-100"></div>
