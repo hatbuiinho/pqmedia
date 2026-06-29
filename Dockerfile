@@ -9,7 +9,9 @@ ENV PUBLIC_API_BASE=${PUBLIC_API_BASE}
 ENV PUBLIC_APP_NAME=${PUBLIC_APP_NAME}
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci \
+	&& ROLLDOWN_LINUX_X64_GNU_VERSION="$(node -p "require('./node_modules/rolldown/package.json').optionalDependencies['@rolldown/binding-linux-x64-gnu']")" \
+	&& npm install --no-save --ignore-scripts "@rolldown/binding-linux-x64-gnu@${ROLLDOWN_LINUX_X64_GNU_VERSION}"
 
 COPY . ./
 
