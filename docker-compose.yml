@@ -9,7 +9,7 @@ services:
     container_name: pqmedia-fe
     restart: unless-stopped
     expose:
-      - "80"
+      - '80'
     networks:
       - nginx_network
 

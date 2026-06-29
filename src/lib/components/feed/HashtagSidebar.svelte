@@ -11,11 +11,19 @@
 		activeHashtag: string;
 		onSelect: (name: string) => void;
 		onClear: () => void;
+		loading?: boolean;
 		mobile?: boolean;
 		onRequestClose?: () => void;
 	}
 
-	let { activeHashtag, onSelect, onClear, mobile = false, onRequestClose }: Props = $props();
+	let {
+		activeHashtag,
+		onSelect,
+		onClear,
+		loading = false,
+		mobile = false,
+		onRequestClose
+	}: Props = $props();
 
 	type EditorMode = 'create' | 'edit';
 
@@ -150,8 +158,13 @@
 				}}
 				class="mt-3 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
 			>
-				<span class="icon-[lucide--hash] size-3.5" aria-hidden="true"></span>
 				#{activeHashtag}
+				{#if loading}
+					<span
+						class="icon-[lucide--loader-circle] size-3.5 animate-spin"
+						aria-label="Đang tải bài viết theo hashtag"
+					></span>
+				{/if}
 				<span class="icon-[lucide--x] size-3.5" aria-hidden="true"></span>
 			</button>
 		{/if}
@@ -210,7 +223,17 @@
 											{item.unpublished_post_count} chưa đăng / {item.post_count} bài viết
 										</div>
 									</div>
-									<span class="icon-[lucide--chevron-right] shrink-0 text-slate-300"></span>
+									{#if loading && activeHashtag === item.name}
+										<span
+											class="icon-[lucide--loader-circle] size-4 shrink-0 animate-spin text-slate-400"
+											aria-label="Đang tải bài viết theo hashtag"
+										></span>
+									{:else}
+										<span
+											class="icon-[lucide--chevron-right] shrink-0 text-slate-300"
+											aria-hidden="true"
+										></span>
+									{/if}
 								</button>
 
 								{#if isAdmin}

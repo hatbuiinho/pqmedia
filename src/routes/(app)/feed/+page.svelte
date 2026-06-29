@@ -456,6 +456,7 @@
 				activeHashtag={currentHashtag}
 				onSelect={applyHashtagFilter}
 				onClear={removeHashtagFilter}
+				{loading}
 			/>
 		</div>
 	</aside>
@@ -486,6 +487,34 @@
 				</button>
 			</form>
 
+			{#if currentHashtag}
+				<div class="flex items-center gap-2 lg:hidden">
+					<button
+						type="button"
+						onclick={removeHashtagFilter}
+						class="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[var(--app-primary-soft)] px-3 py-1.5 text-sm font-medium text-[var(--app-primary-strong)] transition hover:opacity-90"
+						aria-label={`Đang lọc theo hashtag ${currentHashtag}. Bấm để bỏ lọc`}
+					>
+						<span class="truncate">#{currentHashtag}</span>
+						<span class="icon-[lucide--x] size-4 shrink-0" aria-hidden="true"></span>
+					</button>
+					{#if loading}
+						<span
+							class="icon-[lucide--loader-circle] size-4 animate-spin text-slate-400"
+							aria-label="Đang tải bài viết theo hashtag"
+						></span>
+					{/if}
+				</div>
+			{:else if loading && feedEntries.length > 0}
+				<div class="flex items-center gap-2 text-xs text-slate-500">
+					<span
+						class="icon-[lucide--loader-circle] size-4 animate-spin text-slate-400"
+						aria-hidden="true"
+					></span>
+					<span>Đang cập nhật bảng tin…</span>
+				</div>
+			{/if}
+
 			<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} compact />
 		</div>
 
@@ -507,6 +536,18 @@
 
 		{#if error}
 			<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+		{/if}
+
+		{#if loading && feedEntries.length === 0}
+			<div class="rounded-2xl bg-white p-6 shadow-sm">
+				<div class="flex items-center justify-center gap-3 text-sm text-slate-500">
+					<span
+						class="icon-[lucide--loader-circle] size-5 animate-spin text-slate-400"
+						aria-hidden="true"
+					></span>
+					<span>Đang tải bảng tin…</span>
+				</div>
+			</div>
 		{/if}
 
 		{#if feedEntries.length === 0 && !loading}
@@ -548,10 +589,18 @@
 			<button
 				type="button"
 				disabled={loading}
-				class="block w-full rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+				class="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
 				onclick={() => loadMore()}
 			>
-				{loading ? 'Đang tải…' : 'Tải thêm'}
+				{#if loading}
+					<span
+						class="icon-[lucide--loader-circle] size-4 animate-spin text-slate-400"
+						aria-hidden="true"
+					></span>
+					<span>Đang tải…</span>
+				{:else}
+					<span>Tải thêm</span>
+				{/if}
 			</button>
 		{/if}
 	</div>
@@ -592,6 +641,7 @@
 				activeHashtag={currentHashtag}
 				onSelect={applyHashtagFilter}
 				onClear={removeHashtagFilter}
+				{loading}
 				mobile
 				onRequestClose={closeHashtagDrawer}
 			/>
