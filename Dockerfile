@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.6
-FROM node:22-alpine AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
 ARG PUBLIC_API_BASE
