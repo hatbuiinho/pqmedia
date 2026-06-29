@@ -1,8 +1,8 @@
 services:
   fe:
     build:
-      context: ..
-      dockerfile: fe/Dockerfile
+      context: .
+      dockerfile: Dockerfile
       args:
         PUBLIC_API_BASE: ${PUBLIC_API_BASE}
         PUBLIC_APP_NAME: ${PUBLIC_APP_NAME:-PQ Media}

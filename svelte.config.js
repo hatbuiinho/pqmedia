@@ -16,7 +16,7 @@ const config = {
 			strict: false
 		}),
 		alias: {
-			$contracts: '../shared/contracts'
+			$contracts: './src/lib/contracts'
 		}
 	}
 };
