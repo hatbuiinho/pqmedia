@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 	import { postComposer } from '$lib/stores/postComposer.svelte';
 	import MediaPicker, { type PickerItem } from './MediaPicker.svelte';
 
@@ -86,7 +87,7 @@
 		<button
 			type="submit"
 			disabled={!postComposer.canSubmit}
-			class="rounded-lg bg-[var(--app-primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--app-primary-strong)] disabled:opacity-60"
+			class={`${buttonStyles.primary} rounded-lg px-4 py-2 text-sm`}
 		>
 			{busyLabel}
 		</button>

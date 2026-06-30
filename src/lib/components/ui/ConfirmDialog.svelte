@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 
 	/**
 	 * Generic confirm dialog. Shown when `open` is true.
@@ -49,7 +50,7 @@
 				type="button"
 				onclick={onCancel}
 				disabled={busy}
-				class="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-60"
+				class={`${buttonStyles.secondary} rounded-lg px-3 py-1.5 text-sm`}
 			>
 				{cancelText}
 			</button>
@@ -57,9 +58,7 @@
 				type="button"
 				onclick={onConfirm}
 				disabled={busy}
-				class="rounded-lg px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60 {danger
-					? 'bg-rose-600 hover:bg-rose-700'
-					: 'bg-slate-900 hover:bg-slate-800'}"
+				class={`${danger ? buttonStyles.danger : buttonStyles.primary} rounded-lg px-4 py-1.5 text-sm`}
 			>
 				{busy ? 'Đang xử lý…' : confirmText}
 			</button>

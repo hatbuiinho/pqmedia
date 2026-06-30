@@ -9,6 +9,7 @@
 	} from '$lib/share/native-share';
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 
 	interface Props {
 		open: boolean;
@@ -123,7 +124,7 @@
 						type="button"
 						disabled={busy}
 						onclick={onShareWithImages}
-						class="flex w-full items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+						class={`${buttonStyles.primary} w-full rounded-xl px-4 py-3 text-sm`}
 					>
 						<span class="icon-[lucide--share-2] text-lg" aria-hidden="true"></span>
 						<span class="flex-1 text-left">Chia sẻ kèm {imageCount} ảnh</span>
@@ -134,7 +135,7 @@
 					type="button"
 					disabled={busy}
 					onclick={onShareTextOnly}
-					class="flex w-full items-center gap-3 rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+					class={`${buttonStyles.secondary} w-full rounded-xl px-4 py-3 text-sm`}
 				>
 					<span class="icon-[lucide--type] text-lg" aria-hidden="true"></span>
 					<span class="flex-1 text-left">Chỉ chia sẻ text</span>
@@ -145,7 +146,7 @@
 				type="button"
 				disabled={busy}
 				onclick={onCopy}
-				class="flex w-full items-center gap-3 rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+				class={`${buttonStyles.secondary} w-full rounded-xl px-4 py-3 text-sm`}
 			>
 				<span class="icon-[lucide--copy] text-lg" aria-hidden="true"></span>
 				<span class="flex-1 text-left">Sao chép nội dung</span>

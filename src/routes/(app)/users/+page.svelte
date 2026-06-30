@@ -13,6 +13,7 @@
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 	import { pushToast } from '$lib/stores/toast.svelte';
 
 	const PAGE_SIZE = 20;
@@ -271,7 +272,7 @@
 			<button
 				type="button"
 				onclick={openCreateEditor}
-				class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+				class={`${buttonStyles.primary} rounded-xl px-4 py-2 text-sm`}
 			>
 				<span class="icon-[lucide--user-plus] text-base" aria-hidden="true"></span>
 				Tạo mới
@@ -294,7 +295,7 @@
 			<button
 				type="submit"
 				disabled={loading}
-				class="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+				class={`${buttonStyles.secondary} rounded-xl px-3 py-2 text-sm`}
 			>
 				Tìm
 			</button>
@@ -512,14 +513,14 @@
 				type="button"
 				onclick={closeEditor}
 				disabled={editorSaving}
-				class="rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-100 disabled:opacity-60"
+				class={`${buttonStyles.secondary} rounded-lg px-3 py-2 text-sm`}
 			>
 				Hủy
 			</button>
 			<button
 				type="submit"
 				disabled={editorSaving}
-				class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+				class={`${buttonStyles.primary} rounded-lg px-4 py-2 text-sm`}
 			>
 				{editorSaving ? 'Đang lưu…' : editorSubmitLabel}
 			</button>
@@ -574,14 +575,14 @@
 				type="button"
 				onclick={closePasswordEditor}
 				disabled={passwordSaving}
-				class="rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-100 disabled:opacity-60"
+				class={`${buttonStyles.secondary} rounded-lg px-3 py-2 text-sm`}
 			>
 				Hủy
 			</button>
 			<button
 				type="submit"
 				disabled={passwordSaving}
-				class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+				class={`${buttonStyles.primary} rounded-lg px-4 py-2 text-sm`}
 			>
 				{passwordSaving ? 'Đang lưu…' : 'Cập nhật mật khẩu'}
 			</button>

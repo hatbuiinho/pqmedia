@@ -14,6 +14,7 @@
 	import { uploadFile, type UploadResult } from '$lib/api/uploads';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { hashtags } from '$lib/stores/hashtags.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 	import { extractHashtags } from '$lib/utils/hashtags';
 	import { formatRelativeVi } from '$lib/utils/time';
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
@@ -349,7 +350,7 @@
 					type="button"
 					onclick={cancelEdit}
 					disabled={editSaving}
-					class="rounded-lg px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-60"
+					class={`${buttonStyles.secondary} rounded-lg px-3 py-1.5 text-xs`}
 				>
 					Huỷ
 				</button>
@@ -357,7 +358,7 @@
 					type="button"
 					onclick={saveEdit}
 					disabled={editSaving || editUploadingCount > 0 || editFailedCount > 0}
-					class="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+					class={`${buttonStyles.primary} rounded-lg px-3 py-1.5 text-xs`}
 				>
 					{editSaving ? 'Đang lưu…' : 'Lưu'}
 				</button>

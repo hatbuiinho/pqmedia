@@ -4,6 +4,7 @@
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { hashtags } from '$lib/stores/hashtags.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import HashtagActionsMenu from './HashtagActionsMenu.svelte';
 
@@ -141,7 +142,7 @@
 				<button
 					type="button"
 					onclick={openCreate}
-					class="inline-flex h-9 items-center gap-1.5 rounded-full bg-slate-900 px-3 text-xs font-medium text-white transition hover:bg-slate-800"
+					class={`${buttonStyles.primary} h-9 rounded-full px-3 text-xs`}
 				>
 					<span class="icon-[lucide--plus] text-sm" aria-hidden="true"></span>
 					Thêm mới
@@ -213,7 +214,7 @@
 									aria-pressed={activeHashtag === item.name}
 									class={`flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left transition ${
 										activeHashtag === item.name
-											? 'bg-[var(--app-primary-soft)] text-[var(--app-primary-strong)]'
+											? 'bg-(--app-primary-soft) text-(--app-primary-strong)'
 											: 'hover:bg-slate-50 text-slate-700'
 									}`}
 								>
@@ -287,14 +288,14 @@
 				type="button"
 				onclick={closeEditor}
 				disabled={editorBusy}
-				class="rounded-lg px-3 py-2 text-sm text-slate-500 transition hover:bg-slate-100 disabled:opacity-60"
+				class={`${buttonStyles.secondary} rounded-lg px-3 py-2 text-sm`}
 			>
 				Hủy
 			</button>
 			<button
 				type="submit"
 				disabled={editorBusy || editorName.trim() === ''}
-				class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+				class={`${buttonStyles.primary} rounded-lg px-4 py-2 text-sm`}
 			>
 				{editorBusy ? 'Đang lưu…' : editorMode === 'create' ? 'Tạo mới' : 'Lưu thay đổi'}
 			</button>

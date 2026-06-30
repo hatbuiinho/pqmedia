@@ -3,6 +3,7 @@
 	import { ApiError } from '$lib/api/client';
 	import { deletePublication, upsertPublication } from '$lib/api/publications';
 	import { platforms } from '$lib/stores/platforms.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 
 	interface Props {
 		postID: string;
@@ -102,7 +103,7 @@
 			/>
 			<button
 				type="button"
-				class="rounded-md bg-slate-900 px-2 py-1 text-xs text-white hover:bg-slate-800"
+				class={`${buttonStyles.primary} rounded-md px-2 py-1 text-xs`}
 				onclick={() => editing && saveUrl(editing)}
 				disabled={busy !== null}
 			>

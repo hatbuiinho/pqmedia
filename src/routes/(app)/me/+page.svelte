@@ -13,6 +13,7 @@
 		pushSupportState
 	} from '$lib/push/web-push';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 	import { pushToast } from '$lib/stores/toast.svelte';
 
 	let fullName = $state(auth.principal?.profile.full_name ?? '');
@@ -203,11 +204,7 @@
 			</p>
 		{/if}
 
-		<button
-			type="submit"
-			disabled={busy}
-			class="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
-		>
+		<button type="submit" disabled={busy} class={`${buttonStyles.primary} rounded-lg px-4 py-2`}>
 			{busy ? 'Đang lưu…' : 'Lưu'}
 		</button>
 	</form>
@@ -267,7 +264,7 @@
 		<button
 			type="submit"
 			disabled={passwordBusy}
-			class="rounded-lg bg-[var(--app-primary-strong)] px-4 py-2 font-medium text-white transition hover:bg-[var(--app-primary)] disabled:opacity-60"
+			class={`${buttonStyles.primary} rounded-lg px-4 py-2`}
 		>
 			{passwordBusy ? 'Đang cập nhật…' : 'Cập nhật mật khẩu'}
 		</button>
@@ -309,11 +306,7 @@
 					type="button"
 					disabled={pushBusy}
 					onclick={onTogglePush}
-					class={`rounded-lg px-3 py-1.5 text-sm font-medium text-white transition disabled:opacity-60 ${
-						pushActive
-							? 'bg-slate-700 hover:bg-slate-800'
-							: 'bg-[var(--app-primary-strong)] hover:bg-[var(--app-primary)]'
-					}`}
+					class={`${pushActive ? buttonStyles.secondary : buttonStyles.primary} rounded-lg px-3 py-1.5 text-sm`}
 				>
 					{pushBusy ? 'Đang xử lý…' : pushActive ? 'Tắt thông báo' : 'Bật thông báo'}
 				</button>
@@ -321,7 +314,7 @@
 					type="button"
 					disabled={pushBusy}
 					onclick={refreshPushState}
-					class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+					class={`${buttonStyles.secondary} rounded-lg px-3 py-1.5 text-sm`}
 				>
 					Làm mới trạng thái
 				</button>

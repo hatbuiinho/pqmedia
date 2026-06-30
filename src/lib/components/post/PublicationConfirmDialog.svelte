@@ -5,6 +5,7 @@
 	import LucideIcon from '$lib/components/ui/LucideIcon.svelte';
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
+	import { buttonStyles } from '$lib/styles/buttons';
 
 	interface Props {
 		open: boolean;
@@ -136,7 +137,7 @@
 				type="button"
 				onclick={onClose}
 				disabled={saving}
-				class="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-60"
+				class={`${buttonStyles.secondary} rounded-lg px-3 py-1.5 text-sm`}
 			>
 				Bỏ qua
 			</button>
@@ -144,7 +145,7 @@
 				type="button"
 				onclick={onConfirm}
 				disabled={saving || selected.length === 0}
-				class="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+				class={`${buttonStyles.primary} rounded-lg px-4 py-1.5 text-sm`}
 			>
 				{saving ? 'Đang lưu…' : 'Đã đăng'}
 			</button>

@@ -7,6 +7,7 @@
 	import PasswordField from '$lib/components/form/PasswordField.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { APP_NAME } from '$lib/env';
+	import { buttonStyles } from '$lib/styles/buttons';
 
 	let email = $state('');
 	let password = $state('');
@@ -70,7 +71,7 @@
 	<button
 		type="submit"
 		disabled={busy}
-		class="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+		class={`${buttonStyles.primary} w-full rounded-lg px-4 py-2.5`}
 	>
 		{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}
 	</button>
