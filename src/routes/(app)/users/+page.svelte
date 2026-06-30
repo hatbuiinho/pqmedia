@@ -86,6 +86,10 @@
 
 	function closeEditor() {
 		if (editorSaving) return;
+		closeEditorImmediate();
+	}
+
+	function closeEditorImmediate() {
 		editorOpen = false;
 		editorTarget = null;
 		editorError = null;
@@ -169,7 +173,7 @@
 				};
 				await createUser(body);
 				pushToast(`Đã tạo ${body.email}`, 'success');
-				closeEditor();
+				closeEditorImmediate();
 				await load(0);
 				return;
 			}
@@ -185,7 +189,12 @@
 			pushToast(`Đã cập nhật ${updated.user.email}`, 'success');
 			closeEditor();
 		} catch (err) {
-			editorError = err instanceof ApiError ? err.message : 'Lưu người dùng thất bại';
+			editorError =
+				err instanceof ApiError
+					? editorMode === 'create' && err.code === 'email_exists'
+						? 'Email này đã tồn tại.'
+						: err.message
+					: 'Lưu người dùng thất bại';
 		} finally {
 			editorSaving = false;
 		}

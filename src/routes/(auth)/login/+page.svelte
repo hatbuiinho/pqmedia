@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { login } from '$lib/api/auth';
 	import { ApiError } from '$lib/api/client';
+	import LotusMark from '$lib/components/brand/LotusMark.svelte';
 	import PasswordField from '$lib/components/form/PasswordField.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { APP_NAME } from '$lib/env';
@@ -32,8 +33,13 @@
 	}
 </script>
 
-<h1 class="mb-1 text-xl font-semibold">{APP_NAME}</h1>
-<p class="mb-6 text-sm text-slate-500">Đăng nhập để xem bảng tin nội bộ</p>
+<div class="mb-6 flex items-center gap-3">
+	<LotusMark className="h-12 w-12 shrink-0" />
+	<div>
+		<h1 class="mb-1 text-xl font-semibold">{APP_NAME}</h1>
+		<p class="text-sm text-slate-500">Đăng nhập để xem bảng tin nội bộ</p>
+	</div>
+</div>
 
 <form class="space-y-4" onsubmit={onSubmit}>
 	<label class="block text-sm">

@@ -22,6 +22,7 @@ export interface UpdateUserInput {
 }
 
 export interface ResetUserPasswordInput {
+	current_password?: string;
 	password: string;
 }
 
@@ -43,4 +44,8 @@ export function resetUserPassword(userID: string, body: ResetUserPasswordInput) 
 
 export function updateOwnProfile(body: UpdateProfileInput) {
 	return apiFetch<Principal>('/me/profile', { method: 'PATCH', body });
+}
+
+export function changeOwnPassword(body: ResetUserPasswordInput) {
+	return apiFetch<void>('/me/change-password', { method: 'POST', body });
 }

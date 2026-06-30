@@ -6,6 +6,7 @@
 	import { page } from '$app/state';
 	import { fetchMe, logout } from '$lib/api/auth';
 	import { ApiError } from '$lib/api/client';
+	import LotusMark from '$lib/components/brand/LotusMark.svelte';
 	import ProfileMenu from '$lib/components/layout/ProfileMenu.svelte';
 	import PostComposer from '$lib/components/post/PostComposer.svelte';
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
@@ -149,7 +150,16 @@
 						<span class="icon-[lucide--menu] size-5" aria-hidden="true"></span>
 					</button>
 				{/if}
-				<a href={resolve('/feed')} class="font-semibold text-slate-900">{APP_NAME}</a>
+				<a
+					href={resolve('/feed')}
+					class="flex items-center gap-2 rounded-full px-1 py-0.5 text-slate-900"
+				>
+					<LotusMark className="h-9 w-9" />
+					<div class="min-w-0">
+						<div class="truncate text-sm font-semibold">{APP_NAME}</div>
+						<div class="hidden text-[11px] text-slate-500 sm:block">Ban truyền thông</div>
+					</div>
+				</a>
 			</div>
 			<ProfileMenu onLogout={() => onLogout()} />
 		</div>

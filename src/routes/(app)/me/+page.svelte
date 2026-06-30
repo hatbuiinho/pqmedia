@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { ApiError } from '$lib/api/client';
-	import { updateOwnProfile } from '$lib/api/users';
+	import PasswordField from '$lib/components/form/PasswordField.svelte';
+	import { changeOwnPassword, updateOwnProfile } from '$lib/api/users';
 	import {
 		currentPermission,
 		disableWebPush,
@@ -18,6 +19,11 @@
 	let phone = $state(auth.principal?.profile.phone ?? '');
 	let busy = $state(false);
 	let message = $state<{ kind: 'ok' | 'err'; text: string } | null>(null);
+	let passwordBusy = $state(false);
+	let passwordMessage = $state<{ kind: 'ok' | 'err'; text: string } | null>(null);
+	let currentPassword = $state('');
+	let nextPassword = $state('');
+	let confirmPassword = $state('');
 
 	let pushActive = $state(false);
 	let pushBusy = $state(false);
@@ -120,6 +126,44 @@
 			pushBusy = false;
 		}
 	}
+
+	async function onSubmitPassword(event: SubmitEvent) {
+		event.preventDefault();
+		if (passwordBusy) return;
+		if (currentPassword.trim() === '') {
+			passwordMessage = { kind: 'err', text: 'Vui lòng nhập mật khẩu hiện tại.' };
+			return;
+		}
+		if (nextPassword.length < 8) {
+			passwordMessage = { kind: 'err', text: 'Mật khẩu mới phải có ít nhất 8 ký tự.' };
+			return;
+		}
+		if (nextPassword !== confirmPassword) {
+			passwordMessage = { kind: 'err', text: 'Mật khẩu xác nhận không khớp.' };
+			return;
+		}
+
+		passwordBusy = true;
+		passwordMessage = null;
+		try {
+			await changeOwnPassword({
+				current_password: currentPassword,
+				password: nextPassword
+			});
+			currentPassword = '';
+			nextPassword = '';
+			confirmPassword = '';
+			passwordMessage = { kind: 'ok', text: 'Đã cập nhật mật khẩu.' };
+			pushToast('Đã cập nhật mật khẩu.', 'success');
+		} catch (err) {
+			passwordMessage = {
+				kind: 'err',
+				text: err instanceof ApiError ? err.message : 'Đổi mật khẩu thất bại'
+			};
+		} finally {
+			passwordBusy = false;
+		}
+	}
 </script>
 
 <section class="space-y-4">
@@ -165,6 +209,67 @@
 			class="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
 		>
 			{busy ? 'Đang lưu…' : 'Lưu'}
+		</button>
+	</form>
+
+	<form class="space-y-4 rounded-2xl bg-white p-4 shadow-sm" onsubmit={onSubmitPassword}>
+		<div>
+			<h2 class="text-sm font-semibold text-slate-700">Đổi mật khẩu</h2>
+			<p class="mt-1 text-sm text-slate-500">
+				Nhập mật khẩu hiện tại rồi đặt mật khẩu mới cho tài khoản này.
+			</p>
+		</div>
+
+		<label class="block text-sm">
+			<span class="mb-1 block font-medium text-slate-700">Mật khẩu hiện tại</span>
+			<PasswordField
+				bind:value={currentPassword}
+				required
+				autocomplete="current-password"
+				className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+			/>
+		</label>
+
+		<div class="grid gap-4 sm:grid-cols-2">
+			<label class="block text-sm">
+				<span class="mb-1 block font-medium text-slate-700">Mật khẩu mới</span>
+				<PasswordField
+					bind:value={nextPassword}
+					required
+					minlength={8}
+					autocomplete="new-password"
+					className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+				/>
+			</label>
+
+			<label class="block text-sm">
+				<span class="mb-1 block font-medium text-slate-700">Xác nhận mật khẩu mới</span>
+				<PasswordField
+					bind:value={confirmPassword}
+					required
+					minlength={8}
+					autocomplete="new-password"
+					className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+				/>
+			</label>
+		</div>
+
+		{#if passwordMessage}
+			<p
+				class="rounded-md px-3 py-2 text-sm {passwordMessage.kind === 'ok'
+					? 'bg-emerald-50 text-emerald-700'
+					: 'bg-rose-50 text-rose-700'}"
+			>
+				{passwordMessage.text}
+			</p>
+		{/if}
+
+		<button
+			type="submit"
+			disabled={passwordBusy}
+			class="rounded-lg bg-[var(--app-primary-strong)] px-4 py-2 font-medium text-white transition hover:bg-[var(--app-primary)] disabled:opacity-60"
+		>
+			{passwordBusy ? 'Đang cập nhật…' : 'Cập nhật mật khẩu'}
 		</button>
 	</form>
 

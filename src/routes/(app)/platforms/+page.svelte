@@ -269,7 +269,12 @@
 			syncDndItems(items);
 			resetEditor();
 		} catch (err) {
-			editorError = err instanceof ApiError ? err.message : 'Lưu nền tảng thất bại';
+			editorError =
+				err instanceof ApiError
+					? editorMode === 'create' && err.code === 'platform_exists'
+						? 'Nền tảng này đã tồn tại.'
+						: err.message
+					: 'Lưu nền tảng thất bại';
 		} finally {
 			editorSaving = false;
 		}
