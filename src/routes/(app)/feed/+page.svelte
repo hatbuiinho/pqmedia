@@ -85,6 +85,7 @@
 	});
 
 	let searchQuery = $state('');
+	let appliedSearchQuery = $state('');
 	let currentHashtag = $state('');
 	let unpublishedOn = $state<PublicationPlatform[]>([]);
 	let searchTimeout: ReturnType<typeof setTimeout>;
@@ -186,6 +187,9 @@
 		}
 		if (q !== searchQuery && document.activeElement?.getAttribute('name') !== 'search') {
 			searchQuery = q;
+		}
+		if (q !== appliedSearchQuery) {
+			appliedSearchQuery = q;
 			void loadInitial();
 		}
 		if (up.join(',') !== unpublishedOn.join(',')) {
@@ -199,6 +203,7 @@
 			typeof document === 'undefined' ? true : document.visibilityState === 'visible';
 		isOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
 		searchQuery = $page.url.searchParams.get('q') || '';
+		appliedSearchQuery = searchQuery;
 		currentHashtag = $page.url.searchParams.get('hashtag') || '';
 		unpublishedOn = parseUnpublishedOn($page.url.searchParams.get('unpublished_on'));
 		void loadInitial();
@@ -376,9 +381,11 @@
 	}
 
 	function executeSearch(query: string) {
+		const normalizedQuery = query.trim();
+		if (normalizedQuery === appliedSearchQuery) return;
 		const url = new URL($page.url);
-		if (query) {
-			url.searchParams.set('q', query);
+		if (normalizedQuery) {
+			url.searchParams.set('q', normalizedQuery);
 		} else {
 			url.searchParams.delete('q');
 		}
@@ -586,22 +593,27 @@
 		</div>
 
 		{#if hasMore}
-			<button
-				type="button"
-				disabled={loading}
-				class="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-				onclick={() => loadMore()}
-			>
-				{#if loading}
-					<span
-						class="icon-[lucide--loader-circle] size-4 animate-spin text-slate-400"
-						aria-hidden="true"
-					></span>
-					<span>Đang tải…</span>
-				{:else}
-					<span>Tải thêm</span>
-				{/if}
-			</button>
+			<div class="grid justify-items-center gap-2 pt-1 pb-1">
+				<p class="text-[0.82rem] text-slate-500">Đang hiển thị {posts.length} / {total} bài viết</p>
+				<button
+					type="button"
+					disabled={loading}
+					class="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-[0_4px_12px_rgba(0,0,0,0.03)] transition active:translate-y-px disabled:opacity-60"
+					onclick={() => loadMore()}
+				>
+					{#if loading}
+						<span
+							class="icon-[lucide--loader-circle] size-4 animate-spin text-slate-400"
+							aria-hidden="true"
+						></span>
+					{/if}
+					Xem thêm bài cũ
+				</button>
+			</div>
+		{:else if posts.length > 0}
+			<p class="pb-1 text-center text-[0.82rem] text-slate-500">
+				Đang hiển thị {posts.length} / {total} bài viết
+			</p>
 		{/if}
 	</div>
 </section>
