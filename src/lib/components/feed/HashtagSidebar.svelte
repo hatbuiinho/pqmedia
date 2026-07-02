@@ -38,6 +38,7 @@
 	let deleteTarget = $state<string | null>(null);
 	let deleteBusy = $state(false);
 	let searchQuery = $state('');
+	let editorInput = $state<HTMLInputElement | null>(null);
 
 	const isAdmin = $derived(auth.principal?.user.is_admin ?? false);
 	const normalizedSearchQuery = $derived(searchQuery.trim().toLocaleLowerCase('vi-VN'));
@@ -50,6 +51,12 @@
 
 	$effect(() => {
 		void hashtags.ensureLoaded();
+	});
+
+	$effect(() => {
+		if (!editorOpen || !editorInput) return;
+		editorInput.focus();
+		editorInput.select();
 	});
 
 	function closeMobileDrawer() {
@@ -272,6 +279,7 @@
 		<label class="block space-y-1">
 			<span class="text-xs font-medium text-slate-600">Tên hashtag</span>
 			<input
+				bind:this={editorInput}
 				type="text"
 				bind:value={editorName}
 				placeholder="Ví dụ: phatphap"
