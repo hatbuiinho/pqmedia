@@ -3,6 +3,7 @@
 	import type { ReactionSummary, ReactionTargetType } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { toggleReaction } from '$lib/api/reactions';
+	import { selectionStyles } from '$lib/styles/selection';
 	import ReactionListSheet from './ReactionListSheet.svelte';
 
 	interface Props {
@@ -132,7 +133,7 @@
 			{#if localSummaries.length > 0}
 				{#each localSummaries as s (s.emoji)}
 					<button
-						class={`inline-flex items-center gap-1 cursor-pointer rounded-full px-2 py-1 text-xs font-semibold ${s.reacted_by_me ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+						class={`inline-flex items-center gap-1 cursor-pointer rounded-full px-2 py-1 text-xs font-semibold ${s.reacted_by_me ? selectionStyles.softActive : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
 						type="button"
 						onclick={(e) => {
 							e.stopPropagation();
@@ -167,7 +168,7 @@
 			}}
 		>
 			<button
-				class={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${pickerOpen ? 'bg-slate-100 border-slate-300' : 'border-slate-200 bg-white hover:border-indigo-300 text-slate-400 hover:text-indigo-500'}`}
+				class={`inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border transition ${pickerOpen ? selectionStyles.cardActive : 'border-slate-200 bg-white text-slate-400 hover:border-[var(--app-border-strong)] hover:text-[var(--app-primary-strong)]'}`}
 				type="button"
 				aria-label="Thả cảm xúc"
 				onpointerdown={(e) => {

@@ -24,7 +24,7 @@
 		minlength,
 		name,
 		id,
-		className = 'w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500'
+		className = 'w-full rounded-lg border-slate-300'
 	}: Props = $props();
 
 	let visible = $state(false);

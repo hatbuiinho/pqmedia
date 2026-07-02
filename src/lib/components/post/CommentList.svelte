@@ -161,8 +161,7 @@
 			bind:value={draft}
 			placeholder="Viết bình luận…"
 			rows="1"
-			class="flex-1 resize-none rounded-lg border-slate-300 text-sm focus:border-slate-500 focus:ring-slate-500"
-		></textarea>
+			class="flex-1 resize-none rounded-lg border-slate-300 text-sm"></textarea>
 		<button
 			type="submit"
 			disabled={posting || draft.trim() === ''}

@@ -12,13 +12,16 @@
 	import { ApiError } from '$lib/api/client';
 	import { updatePost } from '$lib/api/posts';
 	import { uploadFile, type UploadResult } from '$lib/api/uploads';
+	import { canManagePublications } from '$lib/auth/access';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { hashtags } from '$lib/stores/hashtags.svelte';
 	import { buttonStyles } from '$lib/styles/buttons';
-	import { extractHashtags } from '$lib/utils/hashtags';
+	import { selectionStyles } from '$lib/styles/selection';
+	import { applyManualHashtagSelection, dedupeHashtags } from '$lib/utils/hashtags';
 	import { formatRelativeVi } from '$lib/utils/time';
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
 	import CommentList from './CommentList.svelte';
+	import HashtagSelectionDialog from './HashtagSelectionDialog.svelte';
 	import MediaPicker, { type PickerItem } from './MediaPicker.svelte';
 	import PostActionsMenu from './PostActionsMenu.svelte';
 	import PostContentPreview from './PostContentPreview.svelte';
@@ -53,6 +56,7 @@
 	const isMine = $derived(auth.principal?.user.id === post.author.id);
 	const canEdit = $derived(isMine);
 	const canDelete = $derived(isMine || (auth.principal?.user.is_admin ?? false));
+	const canManagePostPublications = $derived(canManagePublications(auth.principal));
 
 	// `untrack` keeps Svelte from warning about reading a reactive prop at $state
 	// init: we deliberately want the initial value only — subsequent toggles are local.
@@ -65,15 +69,20 @@
 	let shareOpen = $state(false);
 	let confirmOpen = $state(false);
 	let manageOpen = $state(false);
+	let quickHashtagOpen = $state(false);
+	let quickHashtagSaving = $state(false);
 
 	// Inline edit state. Content + hashtags + attachments are editable.
 	let isEditing = $state(false);
 	let editDraft = $state('');
+	let editSelectedHashtags = $state<string[]>([]);
+	let editDismissedContentHashtags = $state<string[]>([]);
 	let editSaving = $state(false);
 	let editError = $state<string | null>(null);
-
-	// Same extraction rule as PostComposer so edit/create stay in sync.
-	const editHashtags = $derived.by(() => extractHashtags(editDraft));
+	let editHashtagOpen = $state(false);
+	let quickHashtagDraft = $state<string[]>([]);
+	let quickDismissedContentHashtags = $state<string[]>([]);
+	let quickHashtagError = $state<string | null>(null);
 
 	// Unified media list during edit: keeps existing attachments and pending uploads
 	// in a single ordered array so reorder works across the boundary.
@@ -124,6 +133,7 @@
 	);
 
 	function handleShared() {
+		if (!canManagePostPublications) return;
 		// Native share resolved → ask user which platforms they actually posted to.
 		confirmOpen = true;
 	}
@@ -134,6 +144,8 @@
 
 	function startEdit() {
 		editDraft = post.content;
+		editSelectedHashtags = dedupeHashtags(post.hashtags ?? []);
+		editDismissedContentHashtags = [];
 		editMedia = post.attachments.map<ExistingEntry>((a) => ({
 			kind: 'existing',
 			id: a.id,
@@ -151,6 +163,7 @@
 		editMedia = [];
 		isEditing = false;
 		editError = null;
+		editHashtagOpen = false;
 	}
 
 	function addEditFiles(files: File[]) {
@@ -188,10 +201,61 @@
 
 	function hashtagsChanged(): boolean {
 		const current = post.hashtags ?? [];
-		if (current.length !== editHashtags.length) return true;
+		if (current.length !== editSelectedHashtags.length) return true;
 		const sortedA = [...current].sort();
-		const sortedB = [...editHashtags].sort();
+		const sortedB = [...editSelectedHashtags].sort();
 		return sortedA.some((t, i) => t !== sortedB[i]);
+	}
+
+	function toggleEditHashtag(name: string, checked: boolean) {
+		const next = applyManualHashtagSelection(
+			editSelectedHashtags,
+			editDismissedContentHashtags,
+			editDraft,
+			name,
+			checked
+		);
+		editSelectedHashtags = next.selected;
+		editDismissedContentHashtags = next.dismissed;
+	}
+
+	function selectEditHashtag(name: string) {
+		toggleEditHashtag(name, true);
+	}
+
+	function openQuickHashtags() {
+		quickHashtagDraft = dedupeHashtags(post.hashtags ?? []);
+		quickDismissedContentHashtags = [];
+		quickHashtagError = null;
+		quickHashtagOpen = true;
+	}
+
+	function toggleQuickHashtag(name: string, checked: boolean) {
+		const next = applyManualHashtagSelection(
+			quickHashtagDraft,
+			quickDismissedContentHashtags,
+			post.content,
+			name,
+			checked
+		);
+		quickHashtagDraft = next.selected;
+		quickDismissedContentHashtags = next.dismissed;
+	}
+
+	async function saveQuickHashtags() {
+		if (quickHashtagSaving) return;
+		quickHashtagSaving = true;
+		quickHashtagError = null;
+		try {
+			const updated = await updatePost(post.id, { hashtags: quickHashtagDraft });
+			onPostUpdated?.(updated);
+			void hashtags.refresh();
+			quickHashtagOpen = false;
+		} catch (err) {
+			quickHashtagError = err instanceof ApiError ? err.message : 'Lưu hashtag thất bại';
+		} finally {
+			quickHashtagSaving = false;
+		}
 	}
 
 	async function uploadEditEntry(id: string) {
@@ -274,7 +338,7 @@
 				hashtags?: string[];
 			} = {};
 			if (contentChanged) body.content = nextContent;
-			if (tagsChanged) body.hashtags = editHashtags;
+			if (tagsChanged) body.hashtags = editSelectedHashtags;
 			if (mediaChanged) body.attachments = buildAttachmentInputs();
 			const updated = await updatePost(post.id, body);
 			onPostUpdated?.(updated);
@@ -323,9 +387,40 @@
 	{#if isEditing}
 		<div class="space-y-3">
 			<HashtagEditor
-				bind:value={editDraft}
+				value={editDraft}
 				placeholder="Sửa nội dung. Thêm hashtag bằng cách gõ #..."
+				onValueChange={(value) => (editDraft = value)}
+				onSelectHashtag={selectEditHashtag}
 			/>
+			<div
+				class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+			>
+				<div class="min-w-0">
+					<div class="text-xs font-medium text-slate-600">Hashtag sẽ lưu</div>
+					<div class="mt-1 flex flex-wrap gap-1.5">
+						{#if editSelectedHashtags.length > 0}
+							{#each editSelectedHashtags as tag (tag)}
+								<span
+									class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${selectionStyles.softActive}`}
+								>
+									#{tag}
+								</span>
+							{/each}
+						{:else}
+							<span class="text-xs text-slate-400">Chưa chọn hashtag nào</span>
+						{/if}
+					</div>
+				</div>
+				<button
+					type="button"
+					disabled={editSaving}
+					onclick={() => (editHashtagOpen = true)}
+					class={`${buttonStyles.secondary} rounded-full px-3 py-1.5 text-xs`}
+				>
+					<span class="icon-[lucide--tags] text-sm" aria-hidden="true"></span>
+					Hashtag{editSelectedHashtags.length > 0 ? ` (${editSelectedHashtags.length})` : ''}
+				</button>
+			</div>
 			<MediaPicker
 				items={editItems}
 				disabled={editSaving}
@@ -368,16 +463,30 @@
 		<PostContentPreview content={post.content} />
 	{/if}
 
-	{#if post.hashtags && post.hashtags.length > 0}
-		<div class="flex flex-wrap gap-1">
-			{#each post.hashtags as tag (tag)}
-				<a
-					href={resolve(`/(app)/feed?hashtag=${encodeURIComponent(tag)}`)}
-					class="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+	{#if (post.hashtags && post.hashtags.length > 0) || canEdit}
+		<div class="flex flex-wrap items-center gap-2">
+			{#if post.hashtags && post.hashtags.length > 0}
+				<div class="flex flex-wrap gap-1">
+					{#each post.hashtags as tag (tag)}
+						<a
+							href={resolve(`/(app)/feed?hashtag=${encodeURIComponent(tag)}`)}
+							class="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+						>
+							#{tag}
+						</a>
+					{/each}
+				</div>
+			{/if}
+			{#if canEdit && !isEditing}
+				<button
+					type="button"
+					onclick={openQuickHashtags}
+					class={`${buttonStyles.secondary} rounded-full px-3 py-1.5 text-xs`}
 				>
-					#{tag}
-				</a>
-			{/each}
+					<span class="icon-[lucide--tags] text-sm" aria-hidden="true"></span>
+					{post.hashtags.length > 0 ? 'Sửa hashtag' : '+ Hashtag'}
+				</button>
+			{/if}
 		</div>
 	{/if}
 
@@ -386,7 +495,11 @@
 	{/if}
 
 	<div class="border-t border-slate-100 pt-3">
-		<PublicationStatus publications={post.publications} onOpenManage={() => (manageOpen = true)} />
+		<PublicationStatus
+			publications={post.publications}
+			disabled={!canManagePostPublications}
+			onOpenManage={() => (manageOpen = true)}
+		/>
 	</div>
 
 	<footer class="flex items-center gap-4 border-t border-slate-100 pt-3">
@@ -453,4 +566,33 @@
 	publications={post.publications}
 	onClose={() => (manageOpen = false)}
 	onChange={handlePublicationsSaved}
+/>
+
+<HashtagSelectionDialog
+	open={editHashtagOpen}
+	selected={editSelectedHashtags}
+	content={editDraft}
+	title="Gắn hashtag cho bài viết"
+	description="Checkbox là nguồn lưu cuối. Hashtag trong nội dung chỉ được lưu khi vẫn đang được chọn."
+	onToggle={toggleEditHashtag}
+	onClose={() => (editHashtagOpen = false)}
+	onConfirm={() => (editHashtagOpen = false)}
+/>
+
+<HashtagSelectionDialog
+	open={quickHashtagOpen}
+	selected={quickHashtagDraft}
+	content={post.content}
+	title="Cập nhật hashtag"
+	description="Giữ link hashtag để lọc nhanh, và dùng bảng này để quyết định hashtag nào thực sự được lưu."
+	confirmText="Lưu hashtag"
+	busy={quickHashtagSaving}
+	error={quickHashtagError}
+	onToggle={toggleQuickHashtag}
+	onClose={() => {
+		if (quickHashtagSaving) return;
+		quickHashtagOpen = false;
+		quickHashtagError = null;
+	}}
+	onConfirm={saveQuickHashtags}
 />

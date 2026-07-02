@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { apiFetch } from '$lib/api/client';
+	import { selectionStyles } from '$lib/styles/selection';
 	import { findActiveHashtag } from '$lib/utils/hashtags';
 
 	let {
@@ -7,13 +8,17 @@
 		placeholder = '',
 		disabled = false,
 		autofocus = false,
-		editorClass = ''
+		editorClass = '',
+		onValueChange,
+		onSelectHashtag
 	} = $props<{
 		value?: string;
 		placeholder?: string;
 		disabled?: boolean;
 		autofocus?: boolean;
 		editorClass?: string;
+		onValueChange?: (value: string) => void;
+		onSelectHashtag?: (hashtag: string) => void;
 	}>();
 
 	let editorEl = $state<HTMLTextAreaElement | null>(null);
@@ -62,6 +67,7 @@
 	function handleInput() {
 		if (!editorEl) return;
 		value = editorEl.value;
+		onValueChange?.(value);
 		updateHashtagState();
 	}
 
@@ -113,6 +119,8 @@
 
 		value = replaced;
 		editorEl.value = replaced;
+		onValueChange?.(value);
+		onSelectHashtag?.(hashtag);
 
 		const nextCaretPos = mentionRange.start + newHashtag.length;
 
@@ -187,7 +195,7 @@
 		bind:this={editorEl}
 		bind:value
 		rows="5"
-		class={`min-h-32 w-full resize-y overflow-y-auto overscroll-contain rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-6 text-slate-800 whitespace-pre-wrap focus:border-slate-500 focus:ring-1 focus:ring-slate-500 focus:outline-none ${editorClass}`}
+		class={`min-h-32 w-full resize-y overflow-y-auto overscroll-contain rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm leading-6 text-slate-800 whitespace-pre-wrap focus:ring-1 focus:outline-none ${editorClass}`}
 		{placeholder}
 		{disabled}
 		oninput={handleInput}
@@ -206,7 +214,7 @@
 						{@const active = idx === highlightIndex}
 						<button
 							class="grid rounded-lg px-3 py-2 text-left transition {active
-								? 'bg-slate-900 text-white'
+								? selectionStyles.solidActive
 								: 'text-slate-900 hover:bg-slate-100'}"
 							type="button"
 							onmousedown={(event) => {

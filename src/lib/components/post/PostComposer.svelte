@@ -1,7 +1,9 @@
 <script lang="ts">
 	import HashtagEditor from '$lib/components/form/HashtagEditor.svelte';
+	import { selectionStyles } from '$lib/styles/selection';
 	import { buttonStyles } from '$lib/styles/buttons';
 	import { postComposer } from '$lib/stores/postComposer.svelte';
+	import HashtagSelectionDialog from './HashtagSelectionDialog.svelte';
 	import MediaPicker, { type PickerItem } from './MediaPicker.svelte';
 
 	interface Props {
@@ -10,6 +12,7 @@
 	}
 
 	let { onSubmitted, autofocus = false }: Props = $props();
+	let hashtagDialogOpen = $state(false);
 
 	const items = $derived<PickerItem[]>(
 		postComposer.media.map((entry) => ({
@@ -46,12 +49,46 @@
 	onsubmit={onSubmit}
 >
 	<HashtagEditor
-		bind:value={postComposer.content}
+		value={postComposer.content}
 		placeholder="Bạn đang nghĩ gì? Thêm hashtag bằng cách gõ #..."
 		disabled={postComposer.isPublishingLocked}
 		editorClass="min-h-40 sm:min-h-72"
+		onValueChange={(value) => postComposer.setContent(value)}
+		onSelectHashtag={(hashtag) => postComposer.selectHashtag(hashtag)}
 		{autofocus}
 	/>
+
+	<div
+		class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+	>
+		<div class="min-w-0">
+			<div class="text-xs font-medium text-slate-600">Hashtag sẽ lưu</div>
+			<div class="mt-1 flex flex-wrap gap-1.5">
+				{#if postComposer.selectedHashtags.length > 0}
+					{#each postComposer.selectedHashtags as tag (tag)}
+						<span
+							class={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${selectionStyles.softActive}`}
+						>
+							#{tag}
+						</span>
+					{/each}
+				{:else}
+					<span class="text-xs text-slate-400">Chưa chọn hashtag nào</span>
+				{/if}
+			</div>
+		</div>
+		<button
+			type="button"
+			disabled={postComposer.isPublishingLocked}
+			onclick={() => (hashtagDialogOpen = true)}
+			class={`${buttonStyles.secondary} rounded-full px-3 py-1.5 text-xs`}
+		>
+			<span class="icon-[lucide--tags] text-sm" aria-hidden="true"></span>
+			Hashtag{postComposer.selectedHashtags.length > 0
+				? ` (${postComposer.selectedHashtags.length})`
+				: ''}
+		</button>
+	</div>
 
 	<MediaPicker
 		{items}
@@ -93,3 +130,14 @@
 		</button>
 	</div>
 </form>
+
+<HashtagSelectionDialog
+	open={hashtagDialogOpen}
+	selected={postComposer.selectedHashtags}
+	content={postComposer.content}
+	title="Gắn hashtag cho bài viết"
+	description="Checkbox là nguồn lưu cuối. Hashtag gõ trong nội dung chỉ được lưu khi vẫn đang được chọn."
+	onToggle={(name, checked) => postComposer.toggleHashtag(name, checked)}
+	onClose={() => (hashtagDialogOpen = false)}
+	onConfirm={() => (hashtagDialogOpen = false)}
+/>

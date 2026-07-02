@@ -2,9 +2,11 @@
 	import type { PostPublication, PublicationPlatform } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { deletePublication, upsertPublication } from '$lib/api/publications';
+	import { canManagePublications } from '$lib/auth/access';
 	import LucideIcon from '$lib/components/ui/LucideIcon.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
 
 	interface Props {
@@ -22,12 +24,14 @@
 	let busy = $state(false);
 	let error = $state<string | null>(null);
 	const availablePlatforms = $derived(platforms.itemsForPublications(publications));
+	const canManage = $derived(canManagePublications(auth.principal));
 
 	function publicationFor(key: PublicationPlatform): PostPublication | undefined {
 		return publications.find((p) => p.platform === key);
 	}
 
 	function requestToggle(platform: PublicationPlatform) {
+		if (!canManage) return;
 		const mark = !publicationFor(platform);
 		pending = { platform, mark };
 	}
@@ -72,7 +76,9 @@
 			<div>
 				<h2 class="text-base font-semibold text-slate-900">Đã đăng ở đâu?</h2>
 				<p class="mt-0.5 text-xs text-slate-500">
-					Cập nhật các nền tảng đã đăng để mọi người tránh đăng trùng.
+					{canManage
+						? 'Cập nhật các nền tảng đã đăng để mọi người tránh đăng trùng.'
+						: 'Bạn đang xem trạng thái đã đăng. Chỉ người có quyền mới được cập nhật.'}
 				</p>
 			</div>
 			<button
@@ -85,6 +91,12 @@
 			</button>
 		</header>
 
+		{#if !canManage}
+			<p class="mb-3 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-600">
+				Bạn không có quyền xác nhận hoặc bỏ xác nhận trạng thái đã đăng.
+			</p>
+		{/if}
+
 		<ul class="space-y-1">
 			{#each availablePlatforms as p (p.key)}
 				{@const pub = publicationFor(p.key)}
@@ -93,17 +105,16 @@
 					<button
 						type="button"
 						onclick={() => requestToggle(p.key)}
-						disabled={busy}
+						disabled={busy || !canManage}
 						aria-pressed={on}
 						class="flex w-full items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition disabled:opacity-60 {on
-							? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+							? `${p.tone} border-transparent`
 							: 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'}"
 					>
 						<LucideIcon icon={p.icon} className="size-4" />
 						<span class="flex-1">{p.label}</span>
 						{#if on}
-							<span class="icon-[lucide--check] text-base text-emerald-600" aria-hidden="true"
-							></span>
+							<span class="icon-[lucide--check] text-base text-current" aria-hidden="true"></span>
 						{:else}
 							<span class="text-xs text-slate-400">Chưa đăng</span>
 						{/if}

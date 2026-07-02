@@ -5,6 +5,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { hashtags } from '$lib/stores/hashtags.svelte';
 	import { buttonStyles } from '$lib/styles/buttons';
+	import { selectionStyles } from '$lib/styles/selection';
 	import { pushToast } from '$lib/stores/toast.svelte';
 	import HashtagActionsMenu from './HashtagActionsMenu.svelte';
 
@@ -157,7 +158,7 @@
 					onClear();
 					closeMobileDrawer();
 				}}
-				class="mt-3 inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+				class={`mt-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition ${selectionStyles.softActive}`}
 			>
 				#{activeHashtag}
 				{#if loading}
@@ -214,7 +215,7 @@
 									aria-pressed={activeHashtag === item.name}
 									class={`flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left transition ${
 										activeHashtag === item.name
-											? 'bg-(--app-primary-soft) text-(--app-primary-strong)'
+											? selectionStyles.cardActive
 											: 'hover:bg-slate-50 text-slate-700'
 									}`}
 								>
@@ -275,7 +276,7 @@
 				bind:value={editorName}
 				placeholder="Ví dụ: phatphap"
 				required
-				class="w-full rounded-xl border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+				class="w-full rounded-xl border-slate-300"
 			/>
 		</label>
 

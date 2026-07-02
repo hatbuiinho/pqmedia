@@ -25,6 +25,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
 	import { buttonStyles } from '$lib/styles/buttons';
+	import { selectionStyles } from '$lib/styles/selection';
 
 	interface PlatformDraft {
 		key: string;
@@ -536,7 +537,7 @@
 						placeholder="Ví dụ: Zalo OA"
 						bind:value={editorDraft.label}
 						required
-						class="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+						class="w-full rounded-lg border-slate-300"
 					/>
 				</label>
 
@@ -556,7 +557,7 @@
 					<input
 						type="checkbox"
 						bind:checked={editorDraft.is_active}
-						class="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+						class="rounded border-slate-300"
 					/>
 					Đang hoạt động
 				</label>
@@ -577,7 +578,7 @@
 						type="search"
 						placeholder="Tìm icon..."
 						bind:value={iconQuery}
-						class="w-full max-w-xs rounded-lg border-slate-300 text-sm focus:border-slate-500 focus:ring-slate-500"
+						class="w-full max-w-xs rounded-lg border-slate-300 text-sm"
 					/>
 				</div>
 				<div
@@ -593,8 +594,8 @@
 							onclick={() => (editorDraft = { ...editorDraft, icon: option.value })}
 							class={`flex items-center justify-center rounded-xl border transition ${
 								editorDraft.icon === option.value
-									? 'border-slate-900 bg-slate-900 text-white'
-									: 'border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+									? selectionStyles.solidActive
+									: selectionStyles.outlineInactive
 							} ${compactIconResults ? 'h-12 px-2' : 'h-16 flex-col gap-1 text-[11px]'}`}
 							aria-pressed={editorDraft.icon === option.value}
 							title={option.label}
@@ -620,8 +621,8 @@
 							onclick={() => (editorDraft = { ...editorDraft, tone: option.value })}
 							class={`rounded-xl border p-3 text-left transition ${
 								editorDraft.tone === option.value
-									? 'border-slate-900 ring-2 ring-slate-900/10'
-									: 'border-slate-200 hover:border-slate-400'
+									? selectionStyles.cardActive
+									: selectionStyles.cardInactive
 							}`}
 							aria-pressed={editorDraft.tone === option.value}
 						>

@@ -6,6 +6,7 @@ export interface User {
 	id: string;
 	email: string;
 	is_admin: boolean;
+	can_manage_publications: boolean;
 	is_active: boolean;
 	created_at: string;
 }

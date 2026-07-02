@@ -7,9 +7,10 @@
 		publications: PostPublication[];
 		/** Click handler — parent typically opens PublicationManageSheet. */
 		onOpenManage?: () => void;
+		disabled?: boolean;
 	}
 
-	let { publications, onOpenManage }: Props = $props();
+	let { publications, onOpenManage, disabled = false }: Props = $props();
 
 	const publishedKeys = $derived(new Set(publications.map((p) => p.platform)));
 	const publishedCount = $derived(publishedKeys.size);
@@ -27,7 +28,8 @@
 	type="button"
 	onclick={onOpenManage}
 	aria-label="Quản lý trạng thái đã đăng"
-	class="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs transition hover:border-slate-400 hover:bg-slate-50"
+	{disabled}
+	class="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-default disabled:opacity-80"
 >
 	<span class="font-medium text-slate-700">
 		Đã đăng <span class="tabular-nums">{publishedCount}/{visiblePlatforms.length}</span>

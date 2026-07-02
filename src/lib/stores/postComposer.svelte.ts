@@ -8,7 +8,7 @@ import type {
 import { ApiError } from '$lib/api/client';
 import { createPost } from '$lib/api/posts';
 import { uploadFile, type UploadResult } from '$lib/api/uploads';
-import { extractHashtags } from '$lib/utils/hashtags';
+import { applyManualHashtagSelection, dedupeHashtags } from '$lib/utils/hashtags';
 import { auth } from './auth.svelte';
 import { hashtags } from './hashtags.svelte';
 
@@ -35,6 +35,7 @@ export interface ComposerFeedEntry {
 
 class PostComposerStore {
 	content = $state('');
+	selectedHashtags = $state<string[]>([]);
 	media = $state<DraftMediaEntry[]>([]);
 	publishStatus = $state<PublishStatus>('idle');
 	error = $state<string | null>(null);
@@ -42,6 +43,7 @@ class PostComposerStore {
 
 	private pendingCounter = 0;
 	private activeEntryKey = $state<string | null>(null);
+	private dismissedContentHashtags = $state<string[]>([]);
 
 	get hasDraft() {
 		return this.content.trim() !== '' || this.media.length > 0;
@@ -67,6 +69,29 @@ class PostComposerStore {
 		if (this.isPublishingLocked) return;
 		this.content = next;
 		if (this.error && this.publishStatus !== 'failed') this.error = null;
+	}
+
+	toggleHashtag(name: string, checked: boolean) {
+		if (this.isPublishingLocked) return;
+		const next = applyManualHashtagSelection(
+			this.selectedHashtags,
+			this.dismissedContentHashtags,
+			this.content,
+			name,
+			checked
+		);
+		this.selectedHashtags = next.selected;
+		this.dismissedContentHashtags = next.dismissed;
+	}
+
+	selectHashtag(name: string) {
+		if (this.isPublishingLocked) return;
+		this.toggleHashtag(name, true);
+	}
+
+	seedHashtags(tags: string[]) {
+		this.selectedHashtags = dedupeHashtags(tags);
+		this.dismissedContentHashtags = [];
 	}
 
 	addFiles(files: File[]) {
@@ -190,7 +215,7 @@ class PostComposerStore {
 			const body: CreatePostRequest = {
 				content: this.content.trim(),
 				attachments: this.buildAttachmentInputs(),
-				hashtags: extractHashtags(this.content)
+				hashtags: this.selectedHashtags
 			};
 			const created = await createPost(body);
 			this.feedEntries = this.feedEntries.map((entry) =>
@@ -275,7 +300,7 @@ class PostComposerStore {
 			},
 			content: this.content,
 			attachments,
-			hashtags: extractHashtags(this.content),
+			hashtags: this.selectedHashtags,
 			comment_count: 0,
 			reactions: [],
 			publications: [],
@@ -287,6 +312,8 @@ class PostComposerStore {
 	private clearDraftState() {
 		for (const entry of this.media) URL.revokeObjectURL(entry.url);
 		this.content = '';
+		this.selectedHashtags = [];
+		this.dismissedContentHashtags = [];
 		this.media = [];
 		this.publishStatus = 'idle';
 		this.error = null;

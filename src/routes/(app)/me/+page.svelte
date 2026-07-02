@@ -181,17 +181,13 @@
 				type="text"
 				bind:value={fullName}
 				required
-				class="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+				class="w-full rounded-lg border-slate-300"
 			/>
 		</label>
 
 		<label class="block text-sm">
 			<span class="mb-1 block font-medium text-slate-700">Số điện thoại</span>
-			<input
-				type="tel"
-				bind:value={phone}
-				class="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
-			/>
+			<input type="tel" bind:value={phone} class="w-full rounded-lg border-slate-300" />
 		</label>
 
 		{#if message}
@@ -223,7 +219,7 @@
 				bind:value={currentPassword}
 				required
 				autocomplete="current-password"
-				className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+				className="w-full rounded-lg border-slate-300"
 			/>
 		</label>
 
@@ -235,7 +231,7 @@
 					required
 					minlength={8}
 					autocomplete="new-password"
-					className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+					className="w-full rounded-lg border-slate-300"
 				/>
 			</label>
 
@@ -246,7 +242,7 @@
 					required
 					minlength={8}
 					autocomplete="new-password"
-					className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+					className="w-full rounded-lg border-slate-300"
 				/>
 			</label>
 		</div>

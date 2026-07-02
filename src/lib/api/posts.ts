@@ -5,7 +5,7 @@ export type FeedQuery = {
 	q?: string;
 	hashtag?: string;
 	author?: string;
-	unpublished_on?: string;
+	publication_filters?: string;
 	limit?: number;
 	offset?: number;
 };

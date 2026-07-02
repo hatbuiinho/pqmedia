@@ -13,7 +13,7 @@
 	} from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { deletePost, listFeed } from '$lib/api/posts';
-	import FeedFilter from '$lib/components/feed/FeedFilter.svelte';
+	import FeedFilter, { type PublicationFilterState } from '$lib/components/feed/FeedFilter.svelte';
 	import HashtagSidebar from '$lib/components/feed/HashtagSidebar.svelte';
 	import PendingPostCard from '$lib/components/post/PendingPostCard.svelte';
 	import PostCard from '$lib/components/post/PostCard.svelte';
@@ -87,7 +87,7 @@
 	let searchQuery = $state('');
 	let appliedSearchQuery = $state('');
 	let currentHashtag = $state('');
-	let unpublishedOn = $state<PublicationPlatform[]>([]);
+	let publicationFilters = $state<Record<PublicationPlatform, PublicationFilterState>>({});
 	let searchTimeout: ReturnType<typeof setTimeout>;
 	let headPollTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -172,14 +172,30 @@
 		}, delay);
 	}
 
-	function parseUnpublishedOn(raw: string | null): PublicationPlatform[] {
-		return platforms.parseActiveKeys(raw) as PublicationPlatform[];
+	function parsePublicationFilters(
+		raw: string | null
+	): Record<PublicationPlatform, PublicationFilterState> {
+		return platforms.parseActivePublicationFilters(raw) as Record<
+			PublicationPlatform,
+			PublicationFilterState
+		>;
+	}
+
+	function stringifyPublicationFilters(
+		filters: Record<PublicationPlatform, PublicationFilterState>
+	): string {
+		return Object.entries(filters)
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([platform, state]) => `${platform}:${state}`)
+			.join(',');
 	}
 
 	$effect(() => {
 		const q = $page.url.searchParams.get('q') || '';
 		const h = $page.url.searchParams.get('hashtag') || '';
-		const up = parseUnpublishedOn($page.url.searchParams.get('unpublished_on'));
+		const nextPublicationFilters = parsePublicationFilters(
+			$page.url.searchParams.get('publication_filters')
+		);
 		// Only update local input if URL changes externally (e.g., initial load or back button)
 		if (h !== currentHashtag) {
 			currentHashtag = h;
@@ -192,8 +208,11 @@
 			appliedSearchQuery = q;
 			void loadInitial();
 		}
-		if (up.join(',') !== unpublishedOn.join(',')) {
-			unpublishedOn = up;
+		if (
+			stringifyPublicationFilters(nextPublicationFilters) !==
+			stringifyPublicationFilters(publicationFilters)
+		) {
+			publicationFilters = nextPublicationFilters;
 			void loadInitial();
 		}
 	});
@@ -205,7 +224,7 @@
 		searchQuery = $page.url.searchParams.get('q') || '';
 		appliedSearchQuery = searchQuery;
 		currentHashtag = $page.url.searchParams.get('hashtag') || '';
-		unpublishedOn = parseUnpublishedOn($page.url.searchParams.get('unpublished_on'));
+		publicationFilters = parsePublicationFilters($page.url.searchParams.get('publication_filters'));
 		void loadInitial();
 
 		const onVisibilityChange = () => {
@@ -258,7 +277,10 @@
 				offset,
 				q: searchQuery || undefined,
 				hashtag: currentHashtag || undefined,
-				unpublished_on: unpublishedOn.length > 0 ? unpublishedOn.join(',') : undefined
+				publication_filters:
+					Object.keys(publicationFilters).length > 0
+						? stringifyPublicationFilters(publicationFilters)
+						: undefined
 			});
 			posts = offset === 0 ? data.items : [...posts, ...data.items];
 			total = data.page.total;
@@ -287,7 +309,10 @@
 				offset: 0,
 				q: searchQuery || undefined,
 				hashtag: currentHashtag || undefined,
-				unpublished_on: unpublishedOn.length > 0 ? unpublishedOn.join(',') : undefined
+				publication_filters:
+					Object.keys(publicationFilters).length > 0
+						? stringifyPublicationFilters(publicationFilters)
+						: undefined
 			});
 
 			const headID = posts[0]?.id;
@@ -419,12 +444,13 @@
 		});
 	}
 
-	function applyUnpublishedFilter(next: PublicationPlatform[]) {
+	function applyPublicationFilters(next: Record<PublicationPlatform, PublicationFilterState>) {
 		const url = new URL($page.url);
-		if (next.length > 0) {
-			url.searchParams.set('unpublished_on', next.join(','));
+		const serialized = stringifyPublicationFilters(next);
+		if (serialized) {
+			url.searchParams.set('publication_filters', serialized);
 		} else {
-			url.searchParams.delete('unpublished_on');
+			url.searchParams.delete('publication_filters');
 		}
 		void goto(resolve(`/(app)/feed?${url.searchParams.toString()}`), {
 			keepFocus: true,
@@ -470,7 +496,16 @@
 
 	<div class="mx-auto min-w-0 max-w-[42rem] space-y-4">
 		<header>
-			<h1 class="text-xl font-semibold">Bảng tin</h1>
+			<div class="flex items-center gap-2">
+				<h1 class="text-xl font-semibold">Bảng tin</h1>
+				<span
+					class={`icon-[lucide--loader-circle] size-4 text-slate-400 transition-opacity ${
+						loading ? 'animate-spin opacity-100' : 'opacity-0'
+					}`}
+					aria-label={loading ? 'Đang tải bảng tin' : undefined}
+					aria-hidden={loading ? undefined : 'true'}
+				></span>
+			</div>
 		</header>
 
 		<div
@@ -512,17 +547,9 @@
 						></span>
 					{/if}
 				</div>
-			{:else if loading && feedEntries.length > 0}
-				<div class="flex items-center gap-2 text-xs text-slate-500">
-					<span
-						class="icon-[lucide--loader-circle] size-4 animate-spin text-slate-400"
-						aria-hidden="true"
-					></span>
-					<span>Đang cập nhật bảng tin…</span>
-				</div>
 			{/if}
 
-			<FeedFilter {unpublishedOn} onChange={applyUnpublishedFilter} compact />
+			<FeedFilter {publicationFilters} onChange={applyPublicationFilters} compact />
 		</div>
 
 		{#if pendingHeadPosts.length > 0}
@@ -543,18 +570,6 @@
 
 		{#if error}
 			<p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
-		{/if}
-
-		{#if loading && feedEntries.length === 0}
-			<div class="rounded-2xl bg-white p-6 shadow-sm">
-				<div class="flex items-center justify-center gap-3 text-sm text-slate-500">
-					<span
-						class="icon-[lucide--loader-circle] size-5 animate-spin text-slate-400"
-						aria-hidden="true"
-					></span>
-					<span>Đang tải bảng tin…</span>
-				</div>
-			</div>
 		{/if}
 
 		{#if feedEntries.length === 0 && !loading}

@@ -50,7 +50,7 @@
 			bind:value={email}
 			required
 			autocomplete="email"
-			class="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+			class="w-full rounded-lg border-slate-300"
 		/>
 	</label>
 
@@ -60,7 +60,7 @@
 			bind:value={password}
 			required
 			autocomplete="current-password"
-			className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+			className="w-full rounded-lg border-slate-300"
 		/>
 	</label>
 

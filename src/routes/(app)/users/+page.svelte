@@ -26,6 +26,7 @@
 		full_name: string;
 		phone: string;
 		is_admin: boolean;
+		can_manage_publications: boolean;
 		is_active: boolean;
 	}
 
@@ -45,6 +46,7 @@
 		full_name: '',
 		phone: '',
 		is_admin: false,
+		can_manage_publications: false,
 		is_active: true
 	});
 	let editorSaving = $state(false);
@@ -81,6 +83,7 @@
 			full_name: '',
 			phone: '',
 			is_admin: false,
+			can_manage_publications: false,
 			is_active: true
 		};
 	}
@@ -115,6 +118,7 @@
 			full_name: user.profile.full_name,
 			phone: user.profile.phone ?? '',
 			is_admin: user.user.is_admin,
+			can_manage_publications: user.user.can_manage_publications,
 			is_active: user.user.is_active
 		};
 		editorOpen = true;
@@ -130,6 +134,10 @@
 
 	function closePasswordEditor() {
 		if (passwordSaving) return;
+		closePasswordEditorImmediate();
+	}
+
+	function closePasswordEditorImmediate() {
 		passwordOpen = false;
 		passwordTarget = null;
 		passwordDraft = '';
@@ -170,7 +178,8 @@
 					password: editorDraft.password,
 					full_name: editorDraft.full_name.trim(),
 					phone: editorDraft.phone.trim() ? editorDraft.phone.trim() : null,
-					is_admin: editorDraft.is_admin
+					is_admin: editorDraft.is_admin,
+					can_manage_publications: editorDraft.can_manage_publications
 				};
 				await createUser(body);
 				pushToast(`Đã tạo ${body.email}`, 'success');
@@ -184,11 +193,12 @@
 				full_name: editorDraft.full_name.trim(),
 				phone: editorDraft.phone.trim() ? editorDraft.phone.trim() : null,
 				is_admin: editorDraft.is_admin,
+				can_manage_publications: editorDraft.can_manage_publications,
 				is_active: editorDraft.is_active
 			});
 			users = users.map((user) => (user.user.id === updated.user.id ? updated : user));
 			pushToast(`Đã cập nhật ${updated.user.email}`, 'success');
-			closeEditor();
+			closeEditorImmediate();
 		} catch (err) {
 			editorError =
 				err instanceof ApiError
@@ -218,7 +228,7 @@
 		try {
 			await resetUserPassword(passwordTarget.user.id, { password: passwordDraft });
 			pushToast(`Đã đặt lại mật khẩu cho ${passwordTarget.user.email}`, 'success');
-			closePasswordEditor();
+			closePasswordEditorImmediate();
 		} catch (err) {
 			passwordError = err instanceof ApiError ? err.message : 'Đặt lại mật khẩu thất bại';
 		} finally {
@@ -233,6 +243,10 @@
 
 	function closeDeactivateConfirm() {
 		if (deactivateBusy) return;
+		closeDeactivateConfirmImmediate();
+	}
+
+	function closeDeactivateConfirmImmediate() {
 		deactivateConfirmOpen = false;
 		deactivateTarget = null;
 	}
@@ -245,14 +259,14 @@
 				full_name: deactivateTarget.profile.full_name,
 				phone: deactivateTarget.profile.phone ?? null,
 				is_admin: deactivateTarget.user.is_admin,
+				can_manage_publications: deactivateTarget.user.can_manage_publications,
 				is_active: false
 			});
 			users = users.map((user) => (user.user.id === updated.user.id ? updated : user));
 			pushToast(`Đã khóa ${updated.user.email}`, 'success');
-			closeDeactivateConfirm();
+			closeDeactivateConfirmImmediate();
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'Khóa tài khoản thất bại';
-			deactivateBusy = false;
 		} finally {
 			deactivateBusy = false;
 		}
@@ -290,7 +304,7 @@
 				type="search"
 				placeholder="Tìm theo email hoặc họ tên..."
 				bind:value={searchQuery}
-				class="flex-1 rounded-xl border-slate-300 bg-white focus:border-slate-500 focus:ring-slate-500"
+				class="flex-1 rounded-xl border-slate-300 bg-white"
 			/>
 			<button
 				type="submit"
@@ -354,6 +368,13 @@
 								{#if user.user.is_admin}
 									<span class="rounded-full bg-slate-900 px-2 py-0.5 text-[11px] text-white">
 										Admin
+									</span>
+								{/if}
+								{#if user.user.can_manage_publications}
+									<span
+										class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-800"
+									>
+										Xác nhận đã đăng
 									</span>
 								{/if}
 								{#if !user.user.is_active}
@@ -443,7 +464,7 @@
 						bind:value={editorDraft.email}
 						readonly={editorMode === 'edit'}
 						required
-						class={`w-full rounded-lg focus:border-slate-500 focus:ring-slate-500 ${
+						class={`w-full rounded-lg ${
 							editorMode === 'edit'
 								? 'border-slate-200 bg-slate-50 text-slate-500'
 								: 'border-slate-300'
@@ -459,7 +480,7 @@
 							required
 							minlength={8}
 							placeholder="Tối thiểu 8 ký tự"
-							className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+							className="w-full rounded-lg border-slate-300"
 						/>
 					</label>
 				{/if}
@@ -470,7 +491,7 @@
 						type="text"
 						bind:value={editorDraft.full_name}
 						required
-						class="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+						class="w-full rounded-lg border-slate-300"
 					/>
 				</label>
 
@@ -480,7 +501,7 @@
 						type="text"
 						bind:value={editorDraft.phone}
 						placeholder="Tuỳ chọn"
-						class="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+						class="w-full rounded-lg border-slate-300"
 					/>
 				</label>
 
@@ -488,16 +509,25 @@
 					<input
 						type="checkbox"
 						bind:checked={editorDraft.is_admin}
-						class="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+						class="rounded border-slate-300"
 					/>
 					Quản trị viên
+				</label>
+
+				<label class="flex items-center gap-2 text-sm text-slate-700 sm:col-span-2">
+					<input
+						type="checkbox"
+						bind:checked={editorDraft.can_manage_publications}
+						class="rounded border-slate-300"
+					/>
+					Được xác nhận bài đã đăng lên nền tảng
 				</label>
 
 				<label class="flex items-center gap-2 text-sm text-slate-700">
 					<input
 						type="checkbox"
 						bind:checked={editorDraft.is_active}
-						class="rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+						class="rounded border-slate-300"
 					/>
 					Đang hoạt động
 				</label>
@@ -552,7 +582,7 @@
 				bind:value={passwordDraft}
 				required
 				minlength={8}
-				className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+				className="w-full rounded-lg border-slate-300"
 			/>
 		</label>
 
@@ -562,7 +592,7 @@
 				bind:value={passwordConfirmDraft}
 				required
 				minlength={8}
-				className="w-full rounded-lg border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+				className="w-full rounded-lg border-slate-300"
 			/>
 		</label>
 

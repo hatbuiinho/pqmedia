@@ -65,6 +65,19 @@ class PlatformStore {
 			);
 	}
 
+	parseActivePublicationFilters(raw: string | null): Record<string, 'published' | 'missing'> {
+		if (!raw) return {};
+		const allowed = new Set(this.activeItems.map((item) => item.key));
+		const next: Record<string, 'published' | 'missing'> = {};
+		for (const part of raw.split(',')) {
+			const [platform, state] = part.split(':').map((item) => item.trim());
+			if (!platform || !state || !allowed.has(platform)) continue;
+			if (state !== 'published' && state !== 'missing') continue;
+			next[platform] = state;
+		}
+		return next;
+	}
+
 	async load(includeInactive = true) {
 		this.loading = true;
 		try {

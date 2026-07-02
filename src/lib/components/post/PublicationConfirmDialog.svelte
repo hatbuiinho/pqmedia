@@ -2,10 +2,13 @@
 	import type { PostPublication, PublicationPlatform } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { upsertPublication } from '$lib/api/publications';
+	import { canManagePublications } from '$lib/auth/access';
 	import LucideIcon from '$lib/components/ui/LucideIcon.svelte';
 	import ModalSurface from '$lib/components/ui/ModalSurface.svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
 	import { buttonStyles } from '$lib/styles/buttons';
+	import { selectionStyles } from '$lib/styles/selection';
 
 	interface Props {
 		open: boolean;
@@ -22,6 +25,7 @@
 	let selected = $state<PublicationPlatform[]>([]);
 	let saving = $state(false);
 	let error = $state<string | null>(null);
+	const canManage = $derived(canManagePublications(auth.principal));
 
 	// Reset selection each time the dialog opens — auto-tick the platforms that
 	// have not been marked yet so user just confirms ("đăng đủ" is the default).
@@ -44,6 +48,7 @@
 	}
 
 	function toggle(platform: PublicationPlatform) {
+		if (!canManage) return;
 		if (isSelected(platform)) {
 			selected = selected.filter((p) => p !== platform);
 		} else {
@@ -59,6 +64,10 @@
 	}
 
 	async function onConfirm() {
+		if (!canManage) {
+			onClose();
+			return;
+		}
 		if (saving || selected.length === 0) {
 			onClose();
 			return;
@@ -91,7 +100,9 @@
 			<div>
 				<h2 class="text-base font-semibold text-slate-900">Đã đăng ở đâu?</h2>
 				<p class="mt-0.5 text-xs text-slate-500">
-					Chọn các nền tảng vừa đăng để mọi người tránh đăng trùng.
+					{canManage
+						? 'Chọn các nền tảng vừa đăng để mọi người tránh đăng trùng.'
+						: 'Bạn không có quyền xác nhận trạng thái đã đăng.'}
 				</p>
 			</div>
 			<button
@@ -104,20 +115,26 @@
 			</button>
 		</header>
 
+		{#if !canManage}
+			<p class="mb-3 rounded-md bg-slate-100 px-3 py-2 text-xs text-slate-600">
+				Chỉ quản trị viên hoặc người được cấp quyền mới có thể xác nhận bài đã đăng.
+			</p>
+		{/if}
+
 		<div class="grid grid-cols-2 gap-2">
 			{#each platforms.activeItems as p (p.key)}
 				{@const published = alreadyPublished(p.key)}
 				{@const checked = isSelected(p.key)}
 				<button
 					type="button"
-					disabled={published || saving}
+					disabled={published || saving || !canManage}
 					onclick={() => toggle(p.key)}
 					aria-pressed={checked}
 					class="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition disabled:cursor-not-allowed disabled:opacity-60 {checked
-						? 'border-slate-900 bg-slate-900 text-white'
+						? `${p.tone} border-transparent`
 						: published
-							? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-							: 'border-slate-200 bg-white text-slate-700 hover:border-slate-400'}"
+							? `${p.tone} border-transparent opacity-75`
+							: selectionStyles.outlineInactive}"
 				>
 					<LucideIcon icon={p.icon} className="size-4" />
 					<span class="flex-1 text-left">{p.label}</span>
@@ -144,7 +161,7 @@
 			<button
 				type="button"
 				onclick={onConfirm}
-				disabled={saving || selected.length === 0}
+				disabled={saving || selected.length === 0 || !canManage}
 				class={`${buttonStyles.primary} rounded-lg px-4 py-1.5 text-sm`}
 			>
 				{saving ? 'Đang lưu…' : 'Đã đăng'}

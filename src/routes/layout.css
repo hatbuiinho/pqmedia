@@ -76,3 +76,40 @@ body {
 		'Segoe UI',
 		sans-serif;
 }
+
+@layer base {
+	button,
+	[role='button'] {
+		cursor: pointer;
+	}
+
+	button:disabled,
+	[role='button'][aria-disabled='true'] {
+		cursor: not-allowed;
+	}
+
+	input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+	textarea,
+	select {
+		border-color: var(--color-slate-300);
+	}
+
+	input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):focus,
+	textarea:focus,
+	select:focus {
+		border-color: var(--app-primary-strong);
+		--tw-ring-color: color-mix(in srgb, var(--app-primary) 40%, transparent);
+	}
+
+	input[type='checkbox'],
+	input[type='radio'] {
+		accent-color: var(--app-primary-strong);
+		color: var(--app-primary-strong);
+	}
+
+	input[type='checkbox']:focus,
+	input[type='radio']:focus {
+		border-color: var(--app-primary-strong);
+		--tw-ring-color: color-mix(in srgb, var(--app-primary) 40%, transparent);
+	}
+}

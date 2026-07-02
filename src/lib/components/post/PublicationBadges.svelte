@@ -2,6 +2,8 @@
 	import type { PostPublication, PublicationPlatform } from '$contracts/backend';
 	import { ApiError } from '$lib/api/client';
 	import { deletePublication, upsertPublication } from '$lib/api/publications';
+	import { canManagePublications } from '$lib/auth/access';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { platforms } from '$lib/stores/platforms.svelte';
 	import { buttonStyles } from '$lib/styles/buttons';
 
@@ -17,6 +19,7 @@
 	let editing = $state<PublicationPlatform | null>(null);
 	let urlDraft = $state('');
 	let error = $state<string | null>(null);
+	const canManage = $derived(canManagePublications(auth.principal));
 
 	function isOn(platform: PublicationPlatform): boolean {
 		return publications.some((p) => p.platform === platform);
@@ -27,7 +30,7 @@
 	}
 
 	async function toggle(platform: PublicationPlatform) {
-		if (busy) return;
+		if (!canManage || busy) return;
 		busy = platform;
 		error = null;
 		try {
@@ -48,12 +51,13 @@
 	}
 
 	function startEdit(platform: PublicationPlatform) {
+		if (!canManage) return;
 		editing = platform;
 		urlDraft = urlOf(platform);
 	}
 
 	async function saveUrl(platform: PublicationPlatform) {
-		if (busy) return;
+		if (!canManage || busy) return;
 		busy = platform;
 		error = null;
 		try {
@@ -79,7 +83,7 @@
 			{@const on = isOn(p.key)}
 			<button
 				type="button"
-				disabled={busy !== null}
+				disabled={busy !== null || !canManage}
 				onclick={() => toggle(p.key)}
 				ondblclick={() => startEdit(p.key)}
 				aria-pressed={on}
@@ -99,7 +103,7 @@
 				type="url"
 				placeholder="https://… (link bài đã đăng)"
 				bind:value={urlDraft}
-				class="flex-1 rounded-md border-slate-300 text-xs focus:border-slate-500 focus:ring-slate-500"
+				class="flex-1 rounded-md border-slate-300 text-xs"
 			/>
 			<button
 				type="button"

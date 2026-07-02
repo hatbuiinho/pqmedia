@@ -7,6 +7,7 @@ export interface CreateUserInput {
 	full_name: string;
 	phone?: string | null;
 	is_admin?: boolean;
+	can_manage_publications?: boolean;
 }
 
 export interface UpdateProfileInput {
@@ -18,6 +19,7 @@ export interface UpdateUserInput {
 	full_name: string;
 	phone?: string | null;
 	is_admin: boolean;
+	can_manage_publications: boolean;
 	is_active: boolean;
 }
 
