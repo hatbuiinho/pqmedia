@@ -9,7 +9,7 @@
 </script>
 
 <img
-	src={`${base}/icons/pqmedia_logo.png`}
+	src={`${base}/icons/pqmedia.png`}
 	alt=""
 	aria-hidden="true"
 	class={`${className} object-contain`}
